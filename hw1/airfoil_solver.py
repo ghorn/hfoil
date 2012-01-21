@@ -103,7 +103,7 @@ class Flow():
         us = []
         vs = []
         for x in linspace(-0.2,1.2,30):
-            for y in linspace(-0.4,0.4, 25):
+            for y in linspace(-0.4,0.4, 26):
                 if abs(y) > thicknessYFun(x):
                     xs.append(x)
                     ys.append(y)
@@ -173,10 +173,10 @@ class Airfoil():
 #        pylab.quiver(xcs,ycs,ucs,vcs,scale=15)
 
 uinf = 20
-alpha = 5*pi/180
+alpha = 10*pi/180
 uinf = [cos(alpha)*uinf, sin(alpha)*uinf]
 
-foil = Airfoil(tau=0.12, chord=1.0, nPanels=200)
+foil = Airfoil(tau=0.12, chord=1.0, nPanels=500)
 flow = Flow(uinf, nVortices=50)
 
 flow.solveGammas(foil.panels)
