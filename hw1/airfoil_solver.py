@@ -1,14 +1,19 @@
 from numpy import *
 import matplotlib.pyplot as pylab
+import sys
 from flow import Flow
 
-#from scipy.interpolate import interp1d
 #from streamplot import streamplot
 
 def thicknessY(tau, xc):
     # tau = thickness/chord
     # xc = x/c
     return 5*tau*(0.2969*sqrt(xc) - 0.1260*(xc) - 0.3537*(xc)**2 + 0.2843*(xc)**3 - 0.1015*(xc)**4)
+
+def dthicknessY(tau, xc):
+    # tau = thickness/chord
+    # xc = x/c
+    return 5*tau*(0.2969*0.5/sqrt(xc) - 0.1260 - 2*0.3537*(xc) + 3*0.2843*(xc)**2 - 4*0.1015*(xc)**3)
 
 def sourceU(strength, x, y):
     r2 = x*x + y*y
@@ -45,14 +50,61 @@ class Airfoil():
             print "setting number of panels to " + str(self.nPanels) + " to make them even"
     
         self.nChordPoints = self.nPanels/2 + 1
-        #print "nChordPoints: " + str(self.nChordPoints)
         xcs = linspace(0,1,self.nChordPoints)
-    
-    #    xcsLeading  = xcs[0]
-    #    xcsTrailing = xcs[-1]
         xcsTop      = xcs[1:-1]
         xcsBottom   = xcsTop[::-1]
-    
+
+        def equalArea():
+            frontBunchingParam = 2.0
+
+            sys.stdout.write("equalizing panel areas... ")
+            sys.stdout.flush()
+            xcs = array(xcsTop)
+
+            for k in range(300):
+                xs = hstack((0.0, array(xcs), 1.0))
+                ys = array([0.0]+[self.halfThickness(chord*xc) for xc in xcs]+[0.0])
+                dxs = xs[1:] - xs[:-1]
+                dys = ys[1:] - ys[:-1]
+                deltas = sqrt( dxs*dxs + dys*dys )
+                dydxs = [dthicknessY(tau,xc) for xc in xcs]
+
+                mat = zeros((len(xcs)+1, len(xcs)))
+                for row in range(len(xcs)+1):
+                    x10 = dxs[row]
+                    y10 = dys[row]
+                    d10 = deltas[row]
+
+                    if row != 0:
+                        dy0dx = dydxs[row-1]
+                        mat[row, row-1] = -(x10 + y10*dy0dx)/d10
+                    if row != len(xcs):
+                        dy1dx = dydxs[row]
+                        mat[row,   row] =  (x10 + y10*dy1dx)/d10
+                z = zeros((len(xcs), 1))
+                e = eye(len(xcs))
+                diff = hstack((z,e)) - hstack(((1 + frontBunchingParam/len(xcs))*e,z))
+                mat = dot(diff, mat)
+                rs  = dot(diff, deltas)
+                step = -linalg.solve(mat, rs)
+
+                if not isnan(sum(step)):
+                    xcs += step
+                    if sum(abs(step)) < 1e-12:
+                        print "finished after " +str(k+1)+" iterations"
+                        return list(xcs)
+                    oldStep = step
+                else:
+                    alpha = 0.5
+                    xcs += (alpha - 1)*oldStep
+                    oldStep = alpha*oldStep
+
+            print "didn't converge after " +str(k+1)+" iterations"
+            return list(xcs)
+
+        xcsTop = equalArea()
+        xcsBottom = xcsTop[::-1]
+
         positions = [[0,0]] + \
                     [[chord*xc,  self.halfThickness(chord*xc)] for xc in xcsTop] + \
                     [[chord, 0]] + \
@@ -82,8 +134,8 @@ class Airfoil():
         vcs = [p.normal()[1] for p in self.panels + [self.panels[0]]]
         pylab.quiver(xcs,ycs,ucs,vcs,scale=15)
 
-normUinf = 20
-alpha = 5*pi/180
+normUinf = 40
+alpha = 10*pi/180
 rho = 1.2
 uinf = array( [cos(alpha)*normUinf, sin(alpha)*normUinf] )
 
@@ -91,7 +143,6 @@ foil = Airfoil(tau=0.12, chord=1.0, nPanels=200)
 flow = Flow(uinf, foil.panels)
 
 flow.solveGammas(foil.panels)
-
 
 # calculate forces by "integrating" pressure
 forces = flow.force(foil.panels, rho)
@@ -114,13 +165,14 @@ print "body frame force:                " + str(vortForce)
 print "wind frame force (drag, lift,_): " + str(vortForceWind)
 print "CL: " + str(vortForceWind[0,1]/(0.5*rho*normUinf*normUinf))
 print "CD: " + str(vortForceWind[0,0]/(0.5*rho*normUinf*normUinf))
+
 foil.plot()
-flow.plot(lambda x: foil.halfThickness(x))
 #foil.plotNormals()
+#flow.plot(lambda x: foil.halfThickness(x))
+flow.plotForces(foil.panels, rho)
 
 pylab.axis('equal')
 pylab.show()
-
 
 #xcs = linspace(0,1,100)
 #T = thicknessY(0.12,xcs)
