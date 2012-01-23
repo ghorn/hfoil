@@ -1,5 +1,7 @@
 from numpy import *
 import matplotlib.pyplot as pylab
+import sys
+
 #from scipy.interpolate import interp1d
 #from streamplot import streamplot
 
@@ -72,6 +74,8 @@ class Flow():
         return vstack((xMat, yMat))
 
     def solveGammas(self, panels):
+        sys.stdout.write("Solving flow... ")
+        sys.stdout.flush()
         np = len(panels)
         uinf = vstack((mat(ones((np,1)))*self.uinf[0], mat(ones((np,1)))*self.uinf[1]))
 
@@ -93,11 +97,14 @@ class Flow():
 
         for vort,gamma in zip(self.vortices,gammas):
             vort._gamma = gamma[0,0]
+        print "done"
 
         # display error:
 #        print dot(NA, gammas) + dot(N, uinf)
 
     def plot(self, thicknessYFun):
+        sys.stdout.write("Drawing flow... ")
+        sys.stdout.flush()
         xs = []
         ys = []
         us = []
@@ -121,6 +128,7 @@ class Flow():
         pylab.plot([v._position[0] for v in self.vortices], [v._position[1] for v in self.vortices], 'rx')
 #        for v in self.vortices:
 #            print v._gamma
+        print "done"
 
 
 class Airfoil():
