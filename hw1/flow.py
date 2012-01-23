@@ -110,7 +110,6 @@ class Flow():
         us = []
         vs = []
 
-        Pinf = 0.0 # whatevs
         Pt = 0.5*rho*dot(self.uinf, self.uinf)
 #        print "Pt: " + str(Pt)
 
@@ -120,7 +119,7 @@ class Flow():
 #            print v2
             pressure = Pt - 0.5*rho*v2
 #            print pressure
-            force = p.normal()*pressure
+            force = -p.normal()*pressure
             
             xs.append(p.centerPos()[0])
             ys.append(p.centerPos()[1])
