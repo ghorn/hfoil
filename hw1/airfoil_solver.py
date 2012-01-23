@@ -141,7 +141,7 @@ alpha = 5*pi/180
 rho = 1.2
 uinf = array( [cos(alpha)*normUinf, sin(alpha)*normUinf] )
 
-foil = Airfoil(tau=0.12, chord=1.0, nPanels=200)
+foil = Airfoil(tau=0.12, chord=1.0, nPanels=400)
 flow = Flow(uinf, foil.panels)
 
 flow.solveGammas(foil.panels)
@@ -168,18 +168,13 @@ print "wind frame force (drag, lift,_): " + str(vortForceWind)
 print "CL: " + str(vortForceWind[0,1]/(0.5*rho*normUinf*normUinf))
 print "CD: " + str(vortForceWind[0,0]/(0.5*rho*normUinf*normUinf))
 
+#flow.plotPrimitives()
 foil.plot()
 #foil.plotNormals()
-#flow.plot(lambda x: foil.halfThickness(x))
-flow.plotForces(foil.panels, rho)
+#flow.plot(lambda x: foil.halfThickness(x), xRange=linspace(-0.05,0.05,51), yRange=linspace(-0.05,0.05,51))
+flow.plot(lambda x: foil.halfThickness(x))
+#flow.plotForces(foil.panels, rho)
+flow.plotCps(foil.panels)
 
 pylab.axis('equal')
 pylab.show()
-
-#xcs = linspace(0,1,100)
-#T = thicknessY(0.12,xcs)
-#
-#pylab.plot(xcs,T)
-#pylab.plot(xcs,-T)
-#pylab.axis('equal')
-#pylab.show()

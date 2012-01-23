@@ -42,8 +42,7 @@ class Flow():
         panels = panels[:maxK] + panels[(maxK+1):]
 
         self.vortices = [Vortex(panel._position0) for panel in panels]
-        self.sources  = [Source((0.6*maxX,0.0))]
-#        self.vortices.append(Vortex(array([0.4,0.1])))
+        self.sources = [Source((0.6*maxX,0.0))]
 
     def primitives(self):
         return self.vortices + self.sources
@@ -101,6 +100,23 @@ class Flow():
         print "done"
         return force
 
+    def plotCps(self,panels):
+        uinf2 = dot(self.uinf, self.uinf)
+
+        Cps = []
+        xs = []
+        ys = []
+
+        for p in panels:
+            u = self.vel(p.centerPos())
+            u2 = dot(u,u)
+            Cps.append( 1 - u2/uinf2 )
+            xs.append(p.centerPos()[0])
+        
+        pylab.plot(xs[:len(xs)/2],-array(Cps[:len(xs)/2]),'r')
+        pylab.plot(xs[len(xs)/2:],-array(Cps[len(xs)/2:]),'g')
+        print "done"
+
     def plotForces(self, panels, rho):
         sys.stdout.write("Drawing forces... ")
         sys.stdout.flush()
@@ -110,16 +126,16 @@ class Flow():
         us = []
         vs = []
 
-        Pt = 0.5*rho*dot(self.uinf, self.uinf)
-#        print "Pt: " + str(Pt)
+        uinf2 = dot(self.uinf, self.uinf)
+        Pt = 0.5*rho*uinf2
 
         for p in panels:
             vel = self.vel(p.centerPos())
-            v2 = dot(vel, vel)
-#            print v2
-            pressure = Pt - 0.5*rho*v2
+            u2 = dot(vel, vel)
+            pressure = Pt - 0.5*rho*u2
+            Cp = 1 - u2/uinf2
 #            print pressure
-            force = -p.normal()*pressure
+            force = -p.normal()*Cp#pressure
             
             xs.append(p.centerPos()[0])
             ys.append(p.centerPos()[1])
@@ -129,16 +145,16 @@ class Flow():
         pylab.quiver(xs,ys,us,vs)
         print "done"
 
-    def plot(self, thicknessYFun):
+    def plot(self, thicknessYFun, xRange=linspace(-0.3,1.3,30), yRange=linspace(-0.4,0.4,26)):
         sys.stdout.write("Drawing flow... ")
         sys.stdout.flush()
         xs = []
         ys = []
         us = []
         vs = []
-        for x in linspace(-0.3,1.3,30):
-            for y in linspace(-0.4,0.4, 26):
-                if abs(y) > thicknessYFun(x):
+        for x in xRange:
+            for y in yRange:
+                if abs(y) > thicknessYFun(x)+0.001:
                     xs.append(x)
                     ys.append(y)
                     uv = self.vel([x,y])
@@ -152,9 +168,7 @@ class Flow():
 #        us = array( sum([vort.vel([xs,ys[:,newaxis]])[0] for vort in self.primitives()] ) + self.uinf[0] )
 #        vs = array( sum([vort.vel([xs,ys[:,newaxis]])[0] for vort in self.primitives()] ) + self.uinf[0] )
 #        streamplot(xs,ys,us,vs)
-        pylab.plot([v._position[0] for v in self.primitives()], [v._position[1] for v in self.primitives()], 'rx')
-#        for v in self.primitives():
-#            print v._gamma
         print "done"
 
-
+    def plotPrimitives(self):
+        pylab.plot([v._position[0] for v in self.primitives()], [v._position[1] for v in self.primitives()], 'rx')
