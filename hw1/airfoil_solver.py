@@ -28,13 +28,11 @@ class Panel():
         return normal / sqrt(dot(normal,normal))
 
     def length(self):
-        dx = self._position0[0] - self._position1[0]
-        dy = self._position0[1] - self._position1[1]
-        return sqrt(dx*dx + dy*dy)
+        delta = self._position0 - self._position1
+        return dot(delta, delta)
 
 class Vortex():
-    def __init__(self, position, gamma = 0):
-        self._gamma = gamma
+    def __init__(self, position):
         self._position = array(position)
 
     def vel(self, testPos):
@@ -47,8 +45,7 @@ class Vortex():
         return array([-dy/r2, dx/r2]) / (2*pi)
 
 class Source():
-    def __init__(self, position, gamma = 0):
-        self._gamma = gamma
+    def __init__(self, position):
         self._position = array(position)
 
     def vel(self, testPos):
@@ -62,15 +59,30 @@ class Source():
 
 
 class Flow():
-    def __init__(self, uinf, nVortices = 5):
-        self.uinf = uinf
-        xs = linspace(0.01, 0.95, nVortices)
-        self.vortices = [Vortex((x,0)) for x in xs]
-        self.vortices += [Source((x,0)) for x in xs]
+    def __init__(self, uinf, panels):
+        self.uinf = array(uinf)
+
+        # don't put vortex at trailing edge
+        maxX = 0
+        for k,p in enumerate(panels):
+            if p._position0[0] > maxX:
+                maxX = p._position0[0]
+                maxK = k
+        panels = panels[:maxK] + panels[(maxK+1):]
+
+        self.vortices = [Vortex(panel._position0) for panel in panels]
+        self.sources  = [Source((0.6*maxX,0.0))]
+#        self.vortices.append(Vortex(array([0.4,0.1])))
+
+    def primitives(self):
+        return self.vortices + self.sources
+
+    def vel(self, pos):
+        return sum([v.vel(pos) for v in self.primitives()]) + self.uinf
 
     def dUdGamma(self, panels):
-        xMat = mat([[vort.velPerGamma(panel.centerPos())[0] for vort in self.vortices] for panel in panels])
-        yMat = mat([[vort.velPerGamma(panel.centerPos())[1] for vort in self.vortices] for panel in panels])
+        xMat = mat([[vs.velPerGamma(panel.centerPos())[0] for vs in self.primitives()] for panel in panels])
+        yMat = mat([[vs.velPerGamma(panel.centerPos())[1] for vs in self.primitives()] for panel in panels])
         return vstack((xMat, yMat))
 
     def solveGammas(self, panels):
@@ -86,21 +98,38 @@ class Flow():
         N = mat(hstack((diag(nxs),diag(nys))))
 
         NA = dot(N,A)
+#        print ""
 #        print linalg.matrix_rank(A)
 #        print linalg.matrix_rank(dot(N,A))
-        piNA = dot( linalg.inv(dot(NA.T,NA)), NA.T)
-        piNA = linalg.pinv(NA)
-#        print linalg.pinv(NA) - piNA
-        Nuinf = dot(N,uinf)
-        gammas = dot(piNA, -Nuinf)
-#        gammas = linalg.lstsq(NA, -Nuinf)[0]
 
-        for vort,gamma in zip(self.vortices,gammas):
-            vort._gamma = gamma[0,0]
+        Nuinf = dot(N,uinf)
+
+#        piNA = dot( linalg.inv(dot(NA.T,NA)), NA.T)
+#        piNA = linalg.pinv(NA)
+#        gammas = dot(piNA, -Nuinf)
+        gammas = linalg.lstsq(NA, -Nuinf)[0]
+#        gammas = linalg.solve(NA, -Nuinf)
+
+        for vs,gamma in zip(self.primitives(),gammas):
+            vs._gamma = gamma[0,0]
         print "done"
 
-        # display error:
-#        print dot(NA, gammas) + dot(N, uinf)
+        # print error:
+        print "mean error: " + str(abs((dot(NA, gammas) + dot(N, uinf))).mean())
+        print "max  error: " + str(abs((dot(NA, gammas) + dot(N, uinf))).max())
+
+    def force(self, panels, rho):
+        sys.stdout.write("Calculating forces... ")
+        sys.stdout.flush()
+        force = array([0.0,0.0])
+        Pt = 0.5*rho*dot(self.uinf, self.uinf)
+        for p in panels:
+            vel = self.vel(p.centerPos())
+            pressure = Pt - 0.5*rho*dot(vel,vel)
+            force += pressure*(-p.normal())*p.length()
+        print "done"
+        return force
+
 
     def plot(self, thicknessYFun):
         sys.stdout.write("Drawing flow... ")
@@ -109,24 +138,24 @@ class Flow():
         ys = []
         us = []
         vs = []
-        for x in linspace(-0.2,1.2,30):
+        for x in linspace(-0.3,1.3,30):
             for y in linspace(-0.4,0.4, 26):
                 if abs(y) > thicknessYFun(x):
                     xs.append(x)
                     ys.append(y)
-                    us.append(sum([vort.vel([x,y])[0] for vort in self.vortices] ) + self.uinf[0])
-                    vs.append(sum([vort.vel([x,y])[1] for vort in self.vortices] ) + self.uinf[1])
+                    uv = self.vel([x,y])
+                    us.append(uv[0])
+                    vs.append(uv[1])
         pylab.quiver(xs,ys,us,vs)
 
 #        xs = array(xs)
 #        ys = array(ys)
 
-#        us = array( sum([vort.vel([xs,ys[:,newaxis]])[0] for vort in self.vortices] ) + self.uinf[0] )
-#        vs = array( sum([vort.vel([xs,ys[:,newaxis]])[0] for vort in self.vortices] ) + self.uinf[0] )
+#        us = array( sum([vort.vel([xs,ys[:,newaxis]])[0] for vort in self.primitives()] ) + self.uinf[0] )
+#        vs = array( sum([vort.vel([xs,ys[:,newaxis]])[0] for vort in self.primitives()] ) + self.uinf[0] )
 #        streamplot(xs,ys,us,vs)
-
-        pylab.plot([v._position[0] for v in self.vortices], [v._position[1] for v in self.vortices], 'rx')
-#        for v in self.vortices:
+        pylab.plot([v._position[0] for v in self.primitives()], [v._position[1] for v in self.primitives()], 'rx')
+#        for v in self.primitives():
 #            print v._gamma
         print "done"
 
@@ -180,20 +209,44 @@ class Airfoil():
         vcs = [p.normal()[1] for p in self.panels + [self.panels[0]]]
 #        pylab.quiver(xcs,ycs,ucs,vcs,scale=15)
 
-uinf = 20
-alpha = 10*pi/180
-uinf = [cos(alpha)*uinf, sin(alpha)*uinf]
+normUinf = 20
+alpha = 5*pi/180
+rho = 1.2
+uinf = array( [cos(alpha)*normUinf, sin(alpha)*normUinf] )
 
-foil = Airfoil(tau=0.12, chord=1.0, nPanels=500)
-flow = Flow(uinf, nVortices=50)
+foil = Airfoil(tau=0.12, chord=1.0, nPanels=200)
+flow = Flow(uinf, foil.panels)
 
 flow.solveGammas(foil.panels)
 
+
+# calculate forces by "integrating" pressure
+forces = flow.force(foil.panels, rho)
+forcesWind = dot(matrix([[cos(alpha), sin(alpha)],[-sin(alpha), cos(alpha)]]), forces)
+print ""
+print "forces calculated from pressure:"
+print "body frame force:              " + str(forces)
+print "wind frame force (drag, lift): " + str(forcesWind)
+print "CL: " + str(forcesWind[0,1]/(0.5*rho*normUinf*normUinf))
+print "CD: " + str(forcesWind[0,0]/(0.5*rho*normUinf*normUinf))
+
+# calculate forces from "vorticity" pressure
+print ""
+print "forces calculated from vorticity:"
+vorticity = sum([v._gamma for v in flow.vortices])
+print "vorticity: " +str(vorticity)
+vortForce = rho*cross(array( [cos(alpha)*normUinf, sin(alpha)*normUinf, 0] ), array([ 0, 0, vorticity]))
+vortForceWind = dot(matrix([[cos(alpha), sin(alpha),0],[-sin(alpha), cos(alpha),0],[0,0,1]]), vortForce)
+print "body frame force:                " + str(vortForce)
+print "wind frame force (drag, lift,_): " + str(vortForceWind)
+print "CL: " + str(vortForceWind[0,1]/(0.5*rho*normUinf*normUinf))
+print "CD: " + str(vortForceWind[0,0]/(0.5*rho*normUinf*normUinf))
 foil.plot()
 flow.plot(lambda x: foil.halfThickness(x))
 
 pylab.axis('equal')
 pylab.show()
+
 
 #xcs = linspace(0,1,100)
 #T = thicknessY(0.12,xcs)
