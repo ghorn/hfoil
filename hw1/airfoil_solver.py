@@ -75,11 +75,12 @@ class Airfoil():
         ys = [p._position0[1] for p in self.panels + [self.panels[0]]]
         pylab.plot(xs,ys,'-')
 
+    def plotNormals(self):
         xcs = [p.centerPos()[0] for p in self.panels + [self.panels[0]]]
         ycs = [p.centerPos()[1] for p in self.panels + [self.panels[0]]]
         ucs = [p.normal()[0] for p in self.panels + [self.panels[0]]]
         vcs = [p.normal()[1] for p in self.panels + [self.panels[0]]]
-#        pylab.quiver(xcs,ycs,ucs,vcs,scale=15)
+        pylab.quiver(xcs,ycs,ucs,vcs,scale=15)
 
 normUinf = 20
 alpha = 5*pi/180
@@ -115,6 +116,7 @@ print "CL: " + str(vortForceWind[0,1]/(0.5*rho*normUinf*normUinf))
 print "CD: " + str(vortForceWind[0,0]/(0.5*rho*normUinf*normUinf))
 foil.plot()
 flow.plot(lambda x: foil.halfThickness(x))
+#foil.plotNormals()
 
 pylab.axis('equal')
 pylab.show()
