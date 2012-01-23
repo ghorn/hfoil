@@ -1,6 +1,7 @@
 from numpy import *
 import matplotlib.pyplot as pylab
 import sys
+
 from flow import Flow
 
 #from streamplot import streamplot
@@ -60,7 +61,8 @@ class Airfoil():
             sys.stdout.write("equalizing panel areas... ")
             sys.stdout.flush()
             xcs = array(xcsTop)
-
+            badSteps = 0
+            
             for k in range(300):
                 xs = hstack((0.0, array(xcs), 1.0))
                 ys = array([0.0]+[self.halfThickness(chord*xc) for xc in xcs]+[0.0])
@@ -90,16 +92,16 @@ class Airfoil():
 
                 if not isnan(sum(step)):
                     xcs += step
+                    while any([xc <= 0 or xc >= 1 for xc in xcs]):
+                        badSteps += 1
+                        alpha = 0.5
+                        xcs += (alpha - 1)*step
+                        step = alpha*step
                     if sum(abs(step)) < 1e-12:
-                        print "finished after " +str(k+1)+" iterations"
+                        print "finished after " +str(k+1)+" iterations (" + str(badSteps) + " bad steps)"
                         return list(xcs)
-                    oldStep = step
-                else:
-                    alpha = 0.5
-                    xcs += (alpha - 1)*oldStep
-                    oldStep = alpha*oldStep
 
-            print "didn't converge after " +str(k+1)+" iterations"
+            print "didn't converge after " +str(k+1)+" iterations (" + str(badSteps) + " bad steps)"
             return list(xcs)
 
         xcsTop = equalArea()
@@ -135,7 +137,7 @@ class Airfoil():
         pylab.quiver(xcs,ycs,ucs,vcs,scale=15)
 
 normUinf = 40
-alpha = 10*pi/180
+alpha = 5*pi/180
 rho = 1.2
 uinf = array( [cos(alpha)*normUinf, sin(alpha)*normUinf] )
 
