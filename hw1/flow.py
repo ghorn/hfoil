@@ -1,10 +1,11 @@
 from numpy import *
 import sys
 import matplotlib.pyplot as pylab
+import scipy.integrate
 
 class Vortex():
     def __init__(self, position):
-        self._position = array(position)
+        self._position = array([float(p) for p in position])
 
     def vel(self, testPos):
         return self.velPerGamma(testPos)*self._gamma
@@ -17,7 +18,7 @@ class Vortex():
 
 class Source():
     def __init__(self, position):
-        self._position = array(position)
+        self._position = array([float(p) for p in position])
 
     def vel(self, testPos):
         return self.velPerGamma(testPos)*self._gamma
@@ -28,13 +29,12 @@ class Source():
         r2 = dx*dx + dy*dy
         return array([dx/r2, dy/r2]) / (2*pi)
 
-
 class Flow():
     def __init__(self, uinf, panels):
-        self.uinf = array(uinf)
+        self.uinf = array([float(x) for x in uinf])
 
         # don't put vortex at trailing edge
-        maxX = 0
+        maxX = 0.0
         for k,p in enumerate(panels):
             if p._position0[0] > maxX:
                 maxX = p._position0[0]
@@ -48,7 +48,7 @@ class Flow():
         return self.vortices + self.sources
 
     def vel(self, pos):
-        return sum([v.vel(pos) for v in self.primitives()]) + self.uinf
+        return sum(vstack([p.vel(pos) for p in self.primitives()]), axis=0) + self.uinf
 
     def dUdGamma(self, panels):
         xMat = mat([[vs.velPerGamma(panel.centerPos())[0] for vs in self.primitives()] for panel in panels])
