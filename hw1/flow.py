@@ -146,7 +146,7 @@ class Flow():
         print "done"
 
     def plot(self, thicknessYFun, xRange=linspace(-0.3,1.3,30), yRange=linspace(-0.4,0.4,26)):
-        sys.stdout.write("Drawing flow... ")
+        sys.stdout.write("Drawing flow field... ")
         sys.stdout.flush()
         xs = []
         ys = []
@@ -154,21 +154,40 @@ class Flow():
         vs = []
         for x in xRange:
             for y in yRange:
-                if abs(y) > thicknessYFun(x)+0.001:
+                if abs(y) > thicknessYFun(x)+0.004:
                     xs.append(x)
                     ys.append(y)
                     uv = self.vel([x,y])
                     us.append(uv[0])
                     vs.append(uv[1])
         pylab.quiver(xs,ys,us,vs)
-
-#        xs = array(xs)
-#        ys = array(ys)
-
-#        us = array( sum([vort.vel([xs,ys[:,newaxis]])[0] for vort in self.primitives()] ) + self.uinf[0] )
-#        vs = array( sum([vort.vel([xs,ys[:,newaxis]])[0] for vort in self.primitives()] ) + self.uinf[0] )
-#        streamplot(xs,ys,us,vs)
         print "done"
 
     def plotPrimitives(self):
         pylab.plot([v._position[0] for v in self.primitives()], [v._position[1] for v in self.primitives()], 'rx')
+
+    def plotStreamlines(self):
+        sys.stdout.write("Drawing streamlines... ")
+        sys.stdout.flush()
+        for y0 in linspace(-0.25, 0.25, 20):
+            y = scipy.integrate.odeint(lambda x,t: self.vel(x), array([-0.2,y0]), linspace(0,0.2,100),rtol=1e-6,atol=1e-6)
+            pylab.plot(y[:,0],y[:,1],'g')
+        print "done"
+
+    def plotSurfaceVelocities(self, panels):
+        sys.stdout.write("Drawing surface velocities... ")
+        sys.stdout.flush()
+        
+        xs = []
+        ys = []
+        us = []
+        vs = []
+        for p in panels:
+            pos = p.centerPos()
+            xs.append(pos[0])
+            ys.append(pos[1])
+            vel = self.vel(pos)
+            us.append(vel[0])
+            vs.append(vel[1])
+        pylab.quiver(xs,ys,us,vs)
+        print "done"
