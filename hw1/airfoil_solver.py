@@ -4,8 +4,6 @@ import sys
 
 from flow import Flow
 
-#from streamplot import streamplot
-
 def thicknessY(tau, xc):
     # tau = thickness/chord
     # xc = x/c
@@ -29,7 +27,7 @@ class Panel():
         return 0.5*(self._position0 + self._position1)
 
     def normal(self):
-        dxy = self._position1 - self._position0
+        dxy = self._position0 - self._position1
         normal = array([-dxy[1], dxy[0]])
         return normal / sqrt(dot(normal,normal))
 
@@ -39,7 +37,6 @@ class Panel():
 
 
 class Airfoil():
-
     def __init__(self, tau=0.12, chord=1.0, nPanels=6):
         self.tau = tau
         self.chord = chord
@@ -104,13 +101,18 @@ class Airfoil():
             print "didn't converge after " +str(k+1)+" iterations (" + str(badSteps) + " bad steps)"
             return list(xcs)
 
-        xcsTop = equalArea()
+        xcsTop = equalArea()[::-1]
         xcsBottom = xcsTop[::-1]
 
-        positions = [[0,0]] + \
+        positions = [[chord, 0]] + \
                     [[chord*xc,  self.halfThickness(chord*xc)] for xc in xcsTop] + \
-                    [[chord, 0]] + \
+                    [[0,0]] + \
                     [[chord*xc, -self.halfThickness(chord*xc)] for xc in xcsBottom]
+
+#        positions = [[0,0]] + \
+#                    [[chord*xc,  self.halfThickness(chord*xc)] for xc in xcsTop] + \
+#                    [[chord, 0]] + \
+#                    [[chord*xc, -self.halfThickness(chord*xc)] for xc in xcsBottom]
 
         self.panels = []
         for k in range(len(positions)-1):
