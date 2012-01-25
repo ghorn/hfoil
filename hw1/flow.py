@@ -41,8 +41,18 @@ class Flow():
                 maxK = k
         panels = panels[:maxK] + panels[(maxK+1):]
 
+        self.vortices = []
+        self.sources = []
+
         self.vortices = [Vortex(panel._position0) for panel in panels]
+#        self.sources = [Source(panel._position0) for panel in panels]
         self.sources = [Source((0.6*maxX,0.0))]
+
+#        self.vortices = [Vortex((0.25*maxX,0.0))]
+#        self.sources = [Source(panel._position0) for panel in panels]
+
+#        self.sources = [Source(array([xc,0])) for xc in linspace(0.03,0.9,10)]
+
 
     def primitives(self):
         return self.vortices + self.sources
@@ -66,11 +76,18 @@ class Flow():
         nxs = [p.length()*p.normal()[0] for p in panels]
         nys = [p.length()*p.normal()[1] for p in panels]
         N = mat(hstack((diag(nxs),diag(nys))))
+        
+        # kutta condition:
+#        z = zeros((1,len(panels)))
+#        ozo = zeros((1,len(panels)))
+#        ozo[0]  =  1.0
+#        ozo[-1] = -1.0
+#        N = vstack((N, hstack((ozo, z)), hstack((z,ozo))))
 
         NA = dot(N,A)
-#        print ""
-#        print linalg.matrix_rank(A)
-#        print linalg.matrix_rank(dot(N,A))
+        print ""
+        print "rank A:  "+str(linalg.matrix_rank(A))
+        print "rank NA: "+str(linalg.matrix_rank(dot(N,A)))
 
         Nuinf = dot(N,uinf)
 
@@ -78,7 +95,6 @@ class Flow():
 #        piNA = linalg.pinv(NA)
 #        gammas = dot(piNA, -Nuinf)
         gammas = linalg.lstsq(NA, -Nuinf)[0]
-#        gammas = linalg.solve(NA, -Nuinf)
 
         for vs,gamma in zip(self.primitives(),gammas):
             vs._gamma = gamma[0,0]

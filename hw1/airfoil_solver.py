@@ -138,12 +138,12 @@ class Airfoil():
         vcs = [p.normal()[1] for p in self.panels + [self.panels[0]]]
         pylab.quiver(xcs,ycs,ucs,vcs,scale=15)
 
-normUinf = 40
-alpha = 5*pi/180
+normUinf = 10.0
+alpha = 0.0#*pi/180
 rho = 1.2
 uinf = array( [cos(alpha)*normUinf, sin(alpha)*normUinf] )
 
-foil = Airfoil(tau=0.12, chord=1.0, nPanels=400)
+foil = Airfoil(tau=0.12, chord=1.0, nPanels=200)
 flow = Flow(uinf, foil.panels)
 
 flow.solveGammas(foil.panels)
