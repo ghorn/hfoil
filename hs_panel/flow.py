@@ -186,7 +186,7 @@ class Flow():
         sys.stdout.write("Drawing streamlines... ")
         sys.stdout.flush()
         for y0 in linspace(-0.25, 0.25, 20):
-            y = scipy.integrate.odeint(lambda x,t: self.vel(x), array([-0.2,y0]), linspace(0,0.2,100),rtol=1e-6,atol=1e-6)
+            y = scipy.integrate.odeint(lambda x,t: self.vel(x), array([-0.3,y0]), linspace(0,0.17,100),rtol=1e-6,atol=1e-6)
             pylab.plot(y[:,0],y[:,1],'g')
         print "done"
 
