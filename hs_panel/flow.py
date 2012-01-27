@@ -3,131 +3,181 @@ import sys
 import matplotlib.pyplot as pylab
 import scipy.integrate
 
-class Vortex():
-    def __init__(self, position):
-        self._position = array([float(p) for p in position])
+class HSPanel():
+    def __init__(self, pos0, pos1):
+        self.pos0 = pos0
+        self.pos1 = pos1
 
-    def vel(self, testPos):
-        return self.velPerGamma(testPos)*self._gamma
+        delta = self.pos1 - self.pos0
 
-    def velPerGamma(self, testPosition):
-        dx = testPosition[0] - self._position[0]
-        dy = testPosition[1] - self._position[1]
-        r2 = dx*dx + dy*dy
-        return array([-dy/r2, dx/r2]) / (2*pi)
+        self.length = sqrt(dot(delta, delta))
+        self.normal = array([-delta[1], delta[0]])/self.length
+        self.tangent = delta/self.length
+        self.midpoint = 0.5*(self.pos1 + self.pos0)
 
-class Source():
-    def __init__(self, position):
-        self._position = array([float(p) for p in position])
+        self.cosTheta = delta[0]/self.length
+        self.sinTheta = delta[1]/self.length
 
-    def vel(self, testPos):
-        return self.velPerGamma(testPos)*self._gamma
+    def beta(self, pos):
+        delta1 = pos - self.pos1
+        delta0 = pos - self.pos0
 
-    def velPerGamma(self, testPosition):
-        dx = testPosition[0] - self._position[0]
-        dy = testPosition[1] - self._position[1]
-        r2 = dx*dx + dy*dy
-        return array([dx/r2, dy/r2]) / (2*pi)
+        v1 = arctan2(delta1[1], delta1[0])
+        v0 = arctan2(delta0[1], delta0[0])
+        return v1 - v0
 
-class Flow():
+    def lnrr(self, pos):
+        delta1 = pos - self.pos1
+        delta0 = pos - self.pos0
+
+        r1 = sqrt(dot(delta1, delta1))
+        r0 = sqrt(dot(delta0, delta0))
+        return -log(r1/r0)
+
+class HSPanelFlow():
     def __init__(self, uinf, panels):
         self.uinf = array([float(x) for x in uinf])
+        self.hsPanels = [HSPanel(p.pos0(), p.pos1()) for p in panels]
+        self.setUV()
 
-        # don't put vortex at trailing edge
-        maxX = 0.0
-        for k,p in enumerate(panels):
-            if p._position0[0] > maxX:
-                maxX = p._position0[0]
-                maxK = k
-        panels = panels[:maxK] + panels[(maxK+1):]
+    def test(self):
+        print "testing..."
+        self.uinf = 0
+        self.gamma = 0.0
+        self.qs = array([0.0 for k in range(len(self.hsPanels))])
+#        self.qs[2] = 50.0
+        self.qs[1] = 50.0
+#        self.qs[49] = 50.0
+#        self.qs[99] = 50.0
+#        self.gamma = 100.0
 
-        self.vortices = []
-        self.sources = []
+        self.plotField(xRange=linspace(-0.6, -0.1, 15), yRange=linspace(-0.3, 0.3, 15))
 
-        self.vortices = [Vortex(panel._position0) for panel in panels]
-#        self.sources = [Source(panel._position0) for panel in panels]
-        self.sources = [Source((0.6*maxX,0.0))]
+#        np = len(self.hsPanels)
+#        qsg = zeros((np+1,1))
+#        print self.hsPanels[0].vel(array([1,3]))
 
-#        self.vortices = [Vortex((0.25*maxX,0.0))]
-#        self.sources = [Source(panel._position0) for panel in panels]
-
-#        self.sources = [Source(array([xc,0])) for xc in linspace(0.03,0.9,10)]
-
-
-    def primitives(self):
-        return self.vortices + self.sources
+        pylab.axis('equal')
+        pylab.show()
+        exit(0)
 
     def vel(self, pos):
-        return sum(vstack([p.vel(pos) for p in self.primitives()]), axis=0) + self.uinf
+        betas = array([p.beta(pos) for p in self.hsPanels])
+        lnrrs = array([p.lnrr(pos) for p in self.hsPanels])
+        coss = array([p.cosTheta for p in self.hsPanels])
+        sins = array([p.sinTheta for p in self.hsPanels])
 
-    def dUdGamma(self, panels):
-        xMat = mat([[vs.velPerGamma(panel.centerPos())[0] for vs in self.primitives()] for panel in panels])
-        yMat = mat([[vs.velPerGamma(panel.centerPos())[1] for vs in self.primitives()] for panel in panels])
-        return vstack((xMat, yMat))
+        vxStar = (self.qs*lnrrs + self.gamma*betas)
+        vyStar = (self.qs*betas - self.gamma*lnrrs)
+        vx = (vxStar*coss - vyStar*sins).sum()/(2*pi)
+        vy = (vxStar*sins + vyStar*coss).sum()/(2*pi)
 
-    def solveGammas(self, panels):
-        sys.stdout.write("Solving flow... ")
+        return array([vx, vy]) + self.uinf
+
+    def setUV(self):
+        sys.stdout.write("Setting up Hess Smith sensitivities... ")
         sys.stdout.flush()
-        np = len(panels)
-        uinf = vstack((mat(ones((np,1)))*self.uinf[0], mat(ones((np,1)))*self.uinf[1]))
 
-        A = self.dUdGamma(panels)
+        # (Uij, Vij) is flow on panel i from source at panel j
+        np = len(self.hsPanels)
+        U = zeros((np, np+1))
+        V = zeros((np, np+1))
 
-        nxs = [p.length()*p.normal()[0] for p in panels]
-        nys = [p.length()*p.normal()[1] for p in panels]
-        N = mat(hstack((diag(nxs),diag(nys))))
-        
-        # kutta condition:
-#        z = zeros((1,len(panels)))
-#        ozo = zeros((1,len(panels)))
-#        ozo[0]  =  1.0
-#        ozo[-1] = -1.0
-#        N = vstack((N, hstack((ozo, z)), hstack((z,ozo))))
-
-        NA = dot(N,A)
-        print ""
-        print "rank A:  "+str(linalg.matrix_rank(A))
-        print "rank NA: "+str(linalg.matrix_rank(dot(N,A)))
-
-        Nuinf = dot(N,uinf)
-
-#        piNA = dot( linalg.inv(dot(NA.T,NA)), NA.T)
-#        piNA = linalg.pinv(NA)
-#        gammas = dot(piNA, -Nuinf)
-        gammas = linalg.lstsq(NA, -Nuinf)[0]
-
-        for vs,gamma in zip(self.primitives(),gammas):
-            vs._gamma = gamma[0,0]
+        for i,p_i in enumerate(self.hsPanels):
+            for j,p_j in enumerate(self.hsPanels):
+                if i == j:
+                    lnrr = 0.0
+                    beta = pi
+                else:
+                    lnrr = p_j.lnrr(p_i.midpoint)
+                    beta = p_j.beta(p_i.midpoint)
+                # source
+                U[i,j] =  p_j.cosTheta*lnrr - p_j.sinTheta*beta
+                V[i,j] =  p_j.sinTheta*lnrr + p_j.cosTheta*beta
+                # vortex
+                U[i,-1] += p_j.cosTheta*beta - p_j.sinTheta*(-lnrr)
+                V[i,-1] += p_j.sinTheta*beta + p_j.cosTheta*(-lnrr)
+        self.UV = vstack((U,V))/(2*pi)
         print "done"
 
-        # print error:
-        print "mean error: " + str(abs((dot(NA, gammas) + dot(N, uinf))).mean())
-        print "max  error: " + str(abs((dot(NA, gammas) + dot(N, uinf))).max())
+    def solve(self):
+        sys.stdout.write("Solving flow... ")
+        sys.stdout.flush()
 
-    def force(self, panels, rho):
+        np = len(self.hsPanels)
+
+        ## flow tangency conditions
+        nxs = [p.normal[0] for p in self.hsPanels]
+        nys = [p.normal[1] for p in self.hsPanels]
+        N = mat(hstack((diag(nxs),diag(nys))))
+
+        ## kutta conditions
+        T = zeros((1,2*np))
+        
+        T[0,0]    = self.hsPanels[0].tangent[0]
+        T[0,np]   = self.hsPanels[0].tangent[1]
+        T[0,np-1] = self.hsPanels[-1].tangent[0]
+        T[0,-1]   = self.hsPanels[-1].tangent[1]
+
+        NT = vstack((N,T))
+        NTUV = dot(NT,self.UV)
+
+        print ""
+        print "rank UV:  "+str(linalg.matrix_rank(self.UV))
+        print "rank NUV: "+str(linalg.matrix_rank(dot(N,self.UV)))
+        print "rank NTUV:  "+str(linalg.matrix_rank(NTUV))
+
+        uinf = vstack((mat(ones((np,1)))*self.uinf[0], mat(ones((np,1)))*self.uinf[1]))
+
+        Nuinf = dot(N,uinf)
+        NTuinf = vstack((Nuinf, array(-dot(self.uinf, self.hsPanels[0].tangent+self.hsPanels[-1].tangent))))
+
+        qsGamma = linalg.solve(NTUV, -NTuinf)
+#        qsGamma = linalg.lstsq(dot(N,self.UV), -Nuinf)[0]
+
+
+        qsGamma = zeros((5,1))
+        qsGamma[-1,0] = 1.0
+        qsGamma[1,0] = 4.0
+        print qsGamma
+
+        self.qs = array([qsGamma[k,0] for k in range(np)])
+        self.gamma = qsGamma[-1,0]
+        panelVels = dot(self.UV, qsGamma) + uinf
+        for k,p in enumerate(self.hsPanels):
+            p.solutionVel = array([panelVels[k,0], panelVels[k+np,0]])
+        for k,p in enumerate(self.hsPanels):
+            print ""
+            print p.solutionVel
+            print self.vel(p.midpoint + p.normal*1e-3)
+        exit(0)
+        print "done"
+        print "mean error: " + str(abs((dot(NTUV, qsGamma) + NTuinf)).mean())
+        print "max  error: " + str(abs((dot(NTUV, qsGamma) + NTuinf)).max())
+
+
+    def force(self, rho):
         sys.stdout.write("Calculating panel forces... ")
         sys.stdout.flush()
         force = array([0.0,0.0])
         Pt = 0.5*rho*dot(self.uinf, self.uinf)
-        for p in panels:
-            vel = self.vel(p.centerPos())
-            pressure = Pt - 0.5*rho*dot(vel,vel)
-            force += pressure*(-p.normal())*p.length()
+        for p in self.hsPanels:
+            pressure = Pt - 0.5*rho*dot(p.solutionVel,p.solutionVel)
+            force += pressure*(-p.normal)*p.length
         print "done"
         return force
 
-    def plotCps(self,panels):
+    def plotCps(self):
         uinf2 = dot(self.uinf, self.uinf)
 
         Cps = []
         xs = []
         ys = []
 
-        for p in panels:
-            u = self.vel(p.centerPos())
-            u2 = dot(u,u)
+        for p in self.hsPanels:
+            u2 = dot(p.solutionVel,p.solutionVel)
             Cps.append( 1 - u2/uinf2 )
-            xs.append(p.centerPos()[0])
+            xs.append(p.midpoint[0])
         
         pylab.plot(xs[:len(xs)/2],-array(Cps[:len(xs)/2]),'r')
         pylab.plot(xs[len(xs)/2:],-array(Cps[len(xs)/2:]),'g')
@@ -146,22 +196,21 @@ class Flow():
         Pt = 0.5*rho*uinf2
 
         for p in panels:
-            vel = self.vel(p.centerPos())
-            u2 = dot(vel, vel)
+            u2 = dot(p.solutionVel, p.solutionVel)
             pressure = Pt - 0.5*rho*u2
             Cp = 1 - u2/uinf2
 #            print pressure
-            force = -p.normal()*Cp#pressure
+            force = -p.normal*Cp#pressure
             
-            xs.append(p.centerPos()[0])
-            ys.append(p.centerPos()[1])
+            xs.append(p.midpoint[0])
+            ys.append(p.midpoint[1])
             us.append(force[0])
             vs.append(force[1])
             
         pylab.quiver(xs,ys,us,vs)
         print "done"
 
-    def plot(self, thicknessYFun, xRange=linspace(-0.3,1.3,30), yRange=linspace(-0.4,0.4,26)):
+    def plotField(self, thicknessYFun=lambda x: 0.0, xRange=linspace(-0.3,1.3,30), yRange=linspace(-0.4,0.4,26)):
         sys.stdout.write("Drawing flow field... ")
         sys.stdout.flush()
         xs = []
@@ -173,14 +222,11 @@ class Flow():
                 if abs(y) > thicknessYFun(x)+0.004:
                     xs.append(x)
                     ys.append(y)
-                    uv = self.vel([x,y])
+                    uv = self.vel(array([x,y]))
                     us.append(uv[0])
                     vs.append(uv[1])
         pylab.quiver(xs,ys,us,vs)
         print "done"
-
-    def plotPrimitives(self):
-        pylab.plot([v._position[0] for v in self.primitives()], [v._position[1] for v in self.primitives()], 'rx')
 
     def plotStreamlines(self):
         sys.stdout.write("Drawing streamlines... ")
@@ -190,7 +236,7 @@ class Flow():
             pylab.plot(y[:,0],y[:,1],'g')
         print "done"
 
-    def plotSurfaceVelocities(self, panels):
+    def plotSurfaceVelocities(self):
         sys.stdout.write("Drawing surface velocities... ")
         sys.stdout.flush()
         
@@ -198,12 +244,24 @@ class Flow():
         ys = []
         us = []
         vs = []
-        for p in panels:
-            pos = p.centerPos()
-            xs.append(pos[0])
-            ys.append(pos[1])
-            vel = self.vel(pos)
-            us.append(vel[0])
-            vs.append(vel[1])
+        for p in self.hsPanels:
+            xs.append(p.midpoint[0])
+            ys.append(p.midpoint[1])
+            us.append(p.vel[0])
+            vs.append(p.vel[1])
         pylab.quiver(xs,ys,us,vs)
         print "done"
+
+    def plotNormals(self):
+        xcs = [p.midpoint[0] for p in self.hsPanels]
+        ycs = [p.midpoint[1] for p in self.hsPanels]
+        ucs = [p.normal[0] for p in self.hsPanels]
+        vcs = [p.normal[1] for p in self.hsPanels]
+        pylab.quiver(xcs,ycs,ucs,vcs,scale=15)
+
+    def plotTangents(self):
+        xcs = [p.midpoint[0] for p in self.hsPanels]
+        ycs = [p.midpoint[1] for p in self.hsPanels]
+        ucs = [p.tangent[0] for p in self.hsPanels]
+        vcs = [p.tangent[1] for p in self.hsPanels]
+        pylab.quiver(xcs,ycs,ucs,vcs,scale=15)

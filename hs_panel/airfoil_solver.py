@@ -2,7 +2,7 @@ from numpy import *
 import matplotlib.pyplot as pylab
 import sys
 
-from flow import Flow
+from flow import HSPanelFlow
 
 def thicknessY(tau, xc):
     # tau = thickness/chord
@@ -23,11 +23,17 @@ class Panel():
         self._position0 = array(position0)
         self._position1 = array(position1)
 
+    def pos0(self):
+        return self._position0
+
+    def pos1(self):
+        return self._position1
+
     def centerPos(self):
-        return 0.5*(self._position0 + self._position1)
+        return 0.5*(self.pos0() + self.pos1())
 
     def normal(self):
-        dxy = self._position0 - self._position1
+        dxy = self._position1 - self._position0
         normal = array([-dxy[1], dxy[0]])
         return normal / sqrt(dot(normal,normal))
 
@@ -101,18 +107,13 @@ class Airfoil():
             print "didn't converge after " +str(k+1)+" iterations (" + str(badSteps) + " bad steps)"
             return list(xcs)
 
-        xcsTop = equalArea()[::-1]
+        xcsTop = equalArea()
         xcsBottom = xcsTop[::-1]
 
         positions = [[chord, 0]] + \
-                    [[chord*xc,  self.halfThickness(chord*xc)] for xc in xcsTop] + \
+                    [[chord*xc, -self.halfThickness(chord*xc)] for xc in xcsBottom] + \
                     [[0,0]] + \
-                    [[chord*xc, -self.halfThickness(chord*xc)] for xc in xcsBottom]
-
-#        positions = [[0,0]] + \
-#                    [[chord*xc,  self.halfThickness(chord*xc)] for xc in xcsTop] + \
-#                    [[chord, 0]] + \
-#                    [[chord*xc, -self.halfThickness(chord*xc)] for xc in xcsBottom]
+                    [[chord*xc,  self.halfThickness(chord*xc)] for xc in xcsTop]
 
         self.panels = []
         for k in range(len(positions)-1):
@@ -139,17 +140,19 @@ class Airfoil():
         pylab.quiver(xcs,ycs,ucs,vcs,scale=15)
 
 normUinf = 10.0
-alpha = 0.0#*pi/180
+alpha = 5.0*pi/180
 rho = 1.2
 uinf = array( [cos(alpha)*normUinf, sin(alpha)*normUinf] )
 
-foil = Airfoil(tau=0.12, chord=1.0, nPanels=200)
-flow = Flow(uinf, foil.panels)
+foil = Airfoil(tau=0.12, chord=1.0, nPanels=4)
+flow = HSPanelFlow(uinf, foil.panels)
 
-flow.solveGammas(foil.panels)
+foil.plot()
+flow.test()
+flow.solve()
 
 # calculate forces by "integrating" pressure
-forces = flow.force(foil.panels, rho)
+forces = flow.force(rho)
 forcesWind = dot(matrix([[cos(alpha), sin(alpha)],[-sin(alpha), cos(alpha)]]), forces)
 print ""
 print "forces calculated from pressure:"
@@ -161,25 +164,25 @@ print "CD: " + str(forcesWind[0,0]/(0.5*rho*normUinf*normUinf))
 # calculate forces from "vorticity" pressure
 print ""
 print "forces calculated from vorticity:"
-vorticity = sum([v._gamma for v in flow.vortices])
-print "vorticity: " +str(vorticity)
-vortForce = rho*cross(array( [cos(alpha)*normUinf, sin(alpha)*normUinf, 0] ), array([ 0, 0, vorticity]))
+print "vorticity: " +str(flow.gamma)
+vortForce = rho*cross(array( [cos(alpha)*normUinf, sin(alpha)*normUinf, 0] ), array([ 0, 0, flow.gamma]))
 vortForceWind = dot(matrix([[cos(alpha), sin(alpha),0],[-sin(alpha), cos(alpha),0],[0,0,1]]), vortForce)
 print "body frame force:                " + str(vortForce)
 print "wind frame force (drag, lift,_): " + str(vortForceWind)
 print "CL: " + str(vortForceWind[0,1]/(0.5*rho*normUinf*normUinf))
 print "CD: " + str(vortForceWind[0,0]/(0.5*rho*normUinf*normUinf))
 
-#flow.plotPrimitives()
 foil.plot()
 #foil.plotNormals()
-#flow.plot(lambda x: foil.halfThickness(x), xRange=linspace(-0.05,0.05,51), yRange=linspace(-0.05,0.05,51))
-#flow.plot(lambda x: foil.halfThickness(x), xRange=linspace(-0.2,1.2,31), yRange=linspace(-0.3,0.3,31))
-#flow.plot(lambda x: foil.halfThickness(x))
+#flow.plotNormals()
+#flow.plotTangents()
+#flow.plotField(lambda x: foil.halfThickness(x), xRange=linspace(-0.05,0.05,51), yRange=linspace(-0.05,0.05,51))
+#flow.plotField(lambda x: foil.halfThickness(x), xRange=linspace(-0.2,1.2,31), yRange=linspace(-0.3,0.3,31))
+#flow.plotField(lambda x: foil.halfThickness(x))
 #flow.plotForces(foil.panels, rho)
-#flow.plotCps(foil.panels)
-flow.plotStreamlines()
-#flow.plotSurfaceVelocities(foil.panels)
+#flow.plotCps()
+#flow.plotStreamlines()
+#flow.plotSurfaceVelocities()
 
 pylab.axis('equal')
 pylab.show()

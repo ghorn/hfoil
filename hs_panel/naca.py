@@ -20,7 +20,7 @@ class Naca4():
             p = self.p
             return self.m/((1-p)*(1-p))*((1-2*p) + 2*p*xc - xc*xc)
         else:
-            raise ValueError("xc > 0")
+            raise ValueError("xc > 1")
 
     def dyc(self,xc):
         # xc: x/chord
@@ -32,7 +32,7 @@ class Naca4():
             p = self.p
             return self.m/((1-p)*(1-p))*(2*p - 2*xc)
         else:
-            raise ValueError("xc > 0")
+            raise ValueError("xc > 1")
 
     def yt(self,xc):
         t = self.t
