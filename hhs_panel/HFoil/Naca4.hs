@@ -5,10 +5,7 @@ module HFoil.Naca4( Naca4(..)
                   , yt
                   , dyt
                   , naca4
-                  , demo
                   ) where
-
-import Graphics.Gloss
 
 naca4 :: (Read a, Fractional a) => String -> Naca4 a
 naca4 (m_:p_:t0:t1:[]) = Naca4 m p t
@@ -18,9 +15,9 @@ naca4 (m_:p_:t0:t1:[]) = Naca4 m p t
     t = 0.01 * read (t0:[t1])
 naca4 _ = error "not a 4 digit airfoil"
 
---        # m: max camber in hundredths of chord
---        # p: position of max camber in tenths of chord
---        # t: max thickness in hundredths of chord
+-- m: max camber in hundredths of chord
+-- p: position of max camber in tenths of chord
+-- t: max thickness in hundredths of chord
 data Naca4 a = Naca4 { naca4_m :: a
                      , naca4_p :: a
                      , naca4_t :: a
@@ -68,36 +65,3 @@ coords foil xc
     xl = xc  + yt_ * (sin theta)
 
     theta = atan $ dyc foil xc
-
-demo :: IO ()
-demo = do
-  let --picture :: Picture
-      picture cds = scale (0.8*(fromIntegral xSize)) (0.8*(fromIntegral xSize))
-                $ translate (-0.5) 0
-                $ color white
-                $ line cds
---                $ line [ (xc, yt (naca4 "0012") xc) | xc <- [0,0.01..0.99]]
-      
-      naca0012Coords = [ (coords (naca4 "0012") xc) | xc <- [0,0.01..0.99]++[1]]
-      xSize = 400
-      ySize = 150
-  display 
-    (InWindow
-     "Hello World"       -- window title
-     (xSize, ySize)          -- window size
-     (10, 710))          -- window position
-    black                        -- background color
-    (pictures (map picture [map fst naca0012Coords, map snd naca0012Coords])) -- picture to display
-
---  let line = plot_lines_values ^= [[ (xc, yt (naca4 "0012") xc)
---                                   | xc <- [0,0.01..0.99::Double]]]
---             $ plot_lines_title ^= "naca 0012"
---             $ defaultPlotLines
---  
---      chart = layout1_title ^= "naca yo"
---              $ layout1_plots ^= [Left (toPlot line)]
---              $ defaultLayout1
---  
---  renderableToWindow (toRenderable chart) 640 480
---  _ <- renderableToPNGFile (toRenderable chart) 640 480 "mDiv_vs_tc.png"
---  return ()
