@@ -1,31 +1,30 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module HFoil.Drawing( drawNaca
+module HFoil.Drawing( toPicture
+                    , draw
                     ) where
 
 import Graphics.Gloss
 
-import HFoil.Naca4
-import HFoil.Panels
+xSize, ySize :: Int
+xSize = 800
+ySize = 300
 
-drawNaca :: IO ()
-drawNaca = do
-  let picture = scale (0.8*(fromIntegral xSize)) (0.8*(fromIntegral xSize))
-                $ translate (-0.5) 0
-                $ color white
-                $ line naca0012Coords
-      
-      naca0012Coords = map (\(x,y) -> (realToFrac x, realToFrac y)) $ toNodes (naca4 "0012" :: Naca4 Double) 200
-      xSize = 400
-      ySize = 150
+toPicture :: Real a => [(a,a)] -> Picture
+toPicture coords = scale (0.8*(fromIntegral xSize)) (0.8*(fromIntegral xSize))
+                   $ translate (-0.5) 0
+                   $ color white
+                   $ line $ map (\(x,y) -> (realToFrac x, realToFrac y)) coords
+
+draw :: [Picture] -> IO ()
+draw pics = do
   display 
     (InWindow
      "Hello World"       -- window title
-     (xSize, ySize)          -- window size
+     (xSize, ySize)      -- window size
      (10, 710))          -- window position
-    black                        -- background color
-    picture               -- picture to display
---    (pictures (map picture [map fst naca0012Coords, map snd naca0012Coords])) -- picture to display
+    black                -- background color
+    (pictures pics)      -- picture to display
 
 --  let line = plot_lines_values ^= [[ (xc, yt (naca4 "0012") xc)
 --                                   | xc <- [0,0.01..0.99::Double]]]
