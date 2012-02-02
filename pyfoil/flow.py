@@ -136,21 +136,16 @@ class HSPanelFlow():
 #        qsGamma = linalg.lstsq(dot(N,self.UV), -Nuinf)[0]
 
 
-        qsGamma = zeros((5,1))
-        qsGamma[-1,0] = 1.0
-        qsGamma[1,0] = 4.0
-        print qsGamma
-
         self.qs = array([qsGamma[k,0] for k in range(np)])
         self.gamma = qsGamma[-1,0]
         panelVels = dot(self.UV, qsGamma) + uinf
         for k,p in enumerate(self.hsPanels):
             p.solutionVel = array([panelVels[k,0], panelVels[k+np,0]])
-        for k,p in enumerate(self.hsPanels):
-            print ""
-            print p.solutionVel
-            print self.vel(p.midpoint + p.normal*1e-3)
-        exit(0)
+#        for k,p in enumerate(self.hsPanels):
+#            print ""
+#            print p.solutionVel
+#            print self.vel(p.midpoint + p.normal*1e-3)
+
         print "done"
         print "mean error: " + str(abs((dot(NTUV, qsGamma) + NTuinf)).mean())
         print "max  error: " + str(abs((dot(NTUV, qsGamma) + NTuinf)).max())

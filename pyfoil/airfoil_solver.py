@@ -144,11 +144,10 @@ alpha = 5.0*pi/180
 rho = 1.2
 uinf = array( [cos(alpha)*normUinf, sin(alpha)*normUinf] )
 
-foil = Airfoil(tau=0.12, chord=1.0, nPanels=4)
+foil = Airfoil(tau=0.12, chord=1.0, nPanels=200)
 flow = HSPanelFlow(uinf, foil.panels)
 
 foil.plot()
-flow.test()
 flow.solve()
 
 # calculate forces by "integrating" pressure
@@ -180,7 +179,7 @@ foil.plot()
 #flow.plotField(lambda x: foil.halfThickness(x), xRange=linspace(-0.2,1.2,31), yRange=linspace(-0.3,0.3,31))
 #flow.plotField(lambda x: foil.halfThickness(x))
 #flow.plotForces(foil.panels, rho)
-#flow.plotCps()
+flow.plotCps()
 #flow.plotStreamlines()
 #flow.plotSurfaceVelocities()
 
