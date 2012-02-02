@@ -23,10 +23,10 @@ Library
                        HFoil.Drawing
 --  Other-modules:       
 
-  Build-depends:       gloss == 1.6.0.*,
+  Build-depends:       gloss >= 1.6,
                        base == 4.*,
-                       MissingH == 1.1.*,
-                       hmatrix >= 0.12.0.0
+                       MissingH >= 1.1,
+                       hmatrix >= 0.12
 
   Ghc-Options:         -Wall
   Ghc-Prof-Options:    -prof -auto-all
