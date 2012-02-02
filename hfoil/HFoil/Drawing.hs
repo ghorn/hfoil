@@ -20,7 +20,7 @@ draw :: [Picture] -> IO ()
 draw pics = do
   display 
     (InWindow
-     "Hello World"       -- window title
+     "hfoil"             -- window title
      (xSize, ySize)      -- window size
      (10, 650))          -- window position
     black                -- background color

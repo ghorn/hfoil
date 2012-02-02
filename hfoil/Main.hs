@@ -14,13 +14,16 @@ normalLength :: Double
 normalLength = 0.01
 
 alphaDeg :: Double
-alphaDeg = 3*pi/180
+alphaDeg = 4*pi/180
 
 nPanels :: Int
 nPanels = 200
 
 cpScale :: Double
 cpScale = -0.3
+
+nodes :: [(Double, Double)]
+nodes = toNodes (naca4 "2412") nPanels
 
 main :: IO ()
 main = do
@@ -30,9 +33,6 @@ main = do
       mcps = toList (scale cpScale (1 - mV*mV))
         where
           (mV, _) = solveFlow nodes alphaDeg
-
-nodes :: [(Double, Double)]
-nodes = toNodes (naca4 "0012") nPanels
 
 normals :: [[(Double, Double)]]
 normals = zipWith f (tail nodes) (init nodes)
@@ -44,4 +44,3 @@ normals = zipWith f (tail nodes) (init nodes)
         dx = x1 - x0
         dy = y1 - y0
         len = sqrt(dx*dx + dy*dy)/normalLength
-
