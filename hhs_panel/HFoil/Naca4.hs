@@ -2,12 +2,13 @@
 
 module HFoil.Naca4( Naca4(..)
                   , coords
+                  , yt
                   , dyt
+                  , naca4
+                  , demo
                   ) where
 
---import Graphics.Rendering.Chart hiding (c)
---import Graphics.Rendering.Chart.Gtk
---import Data.Accessor
+import Graphics.Gloss
 
 naca4 :: (Read a, Fractional a) => String -> Naca4 a
 naca4 (m_:p_:t0:t1:[]) = Naca4 m p t
@@ -68,8 +69,26 @@ coords foil xc
 
     theta = atan $ dyc foil xc
 
---plotFoil :: IO ()
---plotFoil = do
+demo :: IO ()
+demo = do
+  let --picture :: Picture
+      picture cds = scale (0.8*(fromIntegral xSize)) (0.8*(fromIntegral xSize))
+                $ translate (-0.5) 0
+                $ color white
+                $ line cds
+--                $ line [ (xc, yt (naca4 "0012") xc) | xc <- [0,0.01..0.99]]
+      
+      naca0012Coords = [ (coords (naca4 "0012") xc) | xc <- [0,0.01..0.99]++[1]]
+      xSize = 400
+      ySize = 150
+  display 
+    (InWindow
+     "Hello World"       -- window title
+     (xSize, ySize)          -- window size
+     (10, 710))          -- window position
+    black                        -- background color
+    (pictures (map picture [map fst naca0012Coords, map snd naca0012Coords])) -- picture to display
+
 --  let line = plot_lines_values ^= [[ (xc, yt (naca4 "0012") xc)
 --                                   | xc <- [0,0.01..0.99::Double]]]
 --             $ plot_lines_title ^= "naca 0012"
