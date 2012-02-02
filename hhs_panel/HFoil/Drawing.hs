@@ -8,7 +8,7 @@ import Graphics.Gloss
 
 xSize, ySize :: Int
 xSize = 800
-ySize = 300
+ySize = 500
 
 toPic :: Real a => Color -> [(a,a)] -> Picture
 toPic col coords = scale (0.8*(fromIntegral xSize)) (0.8*(fromIntegral xSize))
@@ -22,7 +22,7 @@ draw pics = do
     (InWindow
      "Hello World"       -- window title
      (xSize, ySize)      -- window size
-     (10, 710))          -- window position
+     (10, 650))          -- window position
     black                -- background color
     (pictures pics)      -- picture to display
 

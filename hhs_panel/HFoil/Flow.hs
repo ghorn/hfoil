@@ -59,10 +59,13 @@ getA panels = ( scale (1/(2*pi)) $ fromBlocks [ [ mS, asColumn $ fromList (map (
       where
         beta (i,j)
           | i == j    = pi
-          | otherwise = v1 - v0
+          | otherwise = atan2 (dyjp*dxj - dxjp*dyj)
+                              (dxjp*dxj + dyjp*dyj)
           where
-            v1 = atan2 ((yms @> i) - (yns @> (j+1))) ((xms @> i) - (xns @> (j+1)))
-            v0 = atan2 ((yms @> i) - (yns @>  j   )) ((xms @> i) - (xns @>  j   ))
+            dyj  = (yms @> i) - (yns @>  j   )
+            dxj  = (xms @> i) - (xns @>  j   )
+            dyjp = (yms @> i) - (yns @> (j+1))
+            dxjp = (xms @> i) - (xns @> (j+1))
     
     mS = fromLists $ map (map panelVortex) ijs
       where

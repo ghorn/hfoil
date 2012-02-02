@@ -2,7 +2,7 @@
 
 module Main where
 
-import Graphics.Gloss
+import Graphics.Gloss hiding(scale)
 import Numeric.LinearAlgebra hiding(i)
 
 import HFoil.Panels
@@ -14,17 +14,20 @@ normalLength :: Double
 normalLength = 0.01
 
 alphaDeg :: Double
-alphaDeg = 1*pi/180
+alphaDeg = 3*pi/180
 
 nPanels :: Int
 nPanels = 200
+
+cpScale :: Double
+cpScale = -0.3
 
 main :: IO ()
 main = do
   draw $ (toPic white nodes):(map (toPic green) normals)++[toPic red (zip xs mcps)]
     where
       (xs, _) = midpoints nodes
-      mcps = toList (mV*mV-1)
+      mcps = toList (scale cpScale (1 - mV*mV))
         where
           (mV, _) = solveFlow nodes alphaDeg
 
