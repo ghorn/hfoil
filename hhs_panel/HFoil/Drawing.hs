@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module HFoil.Drawing( toPicture
+module HFoil.Drawing( toPic
                     , draw
                     ) where
 
@@ -10,10 +10,10 @@ xSize, ySize :: Int
 xSize = 800
 ySize = 300
 
-toPicture :: Real a => [(a,a)] -> Picture
-toPicture coords = scale (0.8*(fromIntegral xSize)) (0.8*(fromIntegral xSize))
+toPic :: Real a => Color -> [(a,a)] -> Picture
+toPic col coords = scale (0.8*(fromIntegral xSize)) (0.8*(fromIntegral xSize))
                    $ translate (-0.5) 0
-                   $ color white
+                   $ color col
                    $ line $ map (\(x,y) -> (realToFrac x, realToFrac y)) coords
 
 draw :: [Picture] -> IO ()

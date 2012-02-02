@@ -21,6 +21,7 @@ Library
   Exposed-modules:     HFoil.Naca4
                        HFoil.Panels
                        HFoil.Drawing
+                       HFoil.Flow
 --  Other-modules:       
 
   Build-depends:       gloss >= 1.6,

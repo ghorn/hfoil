@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module HFoil.Panels( toNodes 
+                   , midpoints
                    ) where
 
 import qualified HFoil.Naca4 as Naca4
@@ -15,6 +16,12 @@ toNodes foil nPanels = [(1,0)]++reverse (zip xcs (map negate ycs))++[(0,0)]++zip
     ycs = map (Naca4.yt foil) xcs
     xcs0 = fromList $ init $ tail $ toList $ linspace nXcs (0,1)
     nXcs = (nPanels + (nPanels `mod` 2)) `div` 2 + 1
+
+
+midpoints :: Fractional a => [(a,a)] -> ([a],[a])
+midpoints panels = unzip $ zipWith (\(x1, y1) (x0, y0) -> (0.5*(x1+x0),0.5*(y1+y0))) (tail panels) (init panels)
+
+
 
 bunchPanels :: (Enum a, Floating (Vector a), Floating a, Ord a, Field a) =>
                (a -> a) -> (a -> a) -> Vector a -> Int -> Int -> (Vector a, Int, Int)
