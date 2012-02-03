@@ -41,7 +41,7 @@ dyc (Naca4 {naca4_p = p, naca4_m = m}) xc
 yt :: (Ord a, Floating a) => Naca4 a -> a -> a
 yt (Naca4 {naca4_t = t}) xc
   | xc < 0 = error "xc < 0"
-  | xc > 1 = error $ "xc > 1: xc: " ++ show xc
+  | xc > 1 = error $ "xc > 1"
   | otherwise = 5*t*(0.2969*sqrt(xc) - 0.1260*(xc) - 0.3537*(xc)**2 + 0.2843*(xc)**3 - 0.1015*(xc)**4)
 
 dyt :: (Ord a, Floating a) => Naca4 a -> a -> a
