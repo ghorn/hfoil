@@ -1,7 +1,7 @@
 Name:                hfoil
 Version:             0.1
-Synopsis:            Hess-Smith panel code for airfoil analysis
--- Description:         
+Synopsis:            Hess-Smith panel code for inviscid 2-d airfoil analysis
+Description:
 License:             BSD3
 License-file:        LICENSE
 Author:              Greg Horn
@@ -11,11 +11,9 @@ Category:            Numeric
 Build-type:          Simple
 Cabal-version:       >=1.2
 
-
-Flag fun
-     Description: Build something executable
+Flag repl
+     Description: Build the command line interface
      Default: True
-
 
 Library
   Exposed-modules:     HFoil.Naca4
@@ -24,22 +22,26 @@ Library
                        HFoil.Flow
 --  Other-modules:       
 
-  Build-depends:       gloss >= 1.6,
-                       base == 4.*,
+  Build-depends:       gloss >= 1.7 && <= 1.8,
+                       base >= 4 && < 5,
                        MissingH >= 1.1,
-                       hmatrix >= 0.12
-
+                       hmatrix >= 0.12,
+                       haskeline >= 0.6,
+                       transformers >= 0.2
   Ghc-Options:         -Wall
   Ghc-Prof-Options:    -prof -auto-all
 
 
 
 Executable hfoil
-  if flag(fun)
+  if flag(repl)
      Buildable: True
   else
      Buildable: False
 
   Main-Is:             Main.hs
+  -- (gloss needs -O2 -threaded)
   Ghc-Options:         -O2 -threaded -Wall
   GHC-Prof-Options:    -auto-all -caf-all -rtsopts
+
+--  extra-lib-dirs: /usr/lib

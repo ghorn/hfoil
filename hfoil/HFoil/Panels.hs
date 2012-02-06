@@ -3,11 +3,34 @@
 
 module HFoil.Panels( toNodes 
                    , midpoints
+                   , normals
+                   , unitNormals
                    ) where
 
 import qualified HFoil.Naca4 as Naca4
 import Numeric.LinearAlgebra
 import Data.Tuple.Utils(fst3)
+
+normals :: Fractional a => [(a, a)] -> [[(a, a)]]
+normals nodes = zipWith f' (tail nodes) (init nodes)
+  where
+    f' (x1,y1) (x0,y0) = [(mx, my), (mx - dy, my + dx)]
+      where
+        mx = 0.5*(x1+x0)
+        my = 0.5*(y1+y0)
+        dx = x1 - x0
+        dy = y1 - y0
+
+unitNormals :: Floating a => a -> [(a, a)] -> [[(a, a)]]
+unitNormals normalLength nodes = zipWith f' (tail nodes) (init nodes)
+  where
+    f' (x1,y1) (x0,y0) = [(mx, my), (mx - dy/len*normalLength, my + dx/len*normalLength)]
+      where
+        mx = 0.5*(x1+x0)
+        my = 0.5*(y1+y0)
+        dx = x1 - x0
+        dy = y1 - y0
+        len = sqrt(dx*dx + dy*dy)
 
 toNodes :: (Enum a, Floating (Vector a), Floating a, Ord a, Field a) => Naca4.Naca4 a -> Int -> [(a,a)]
 toNodes foil nPanels = [(1,0)]++reverse lower++[(0,0)]++upper++[(1,0)]
