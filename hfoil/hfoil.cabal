@@ -43,5 +43,4 @@ Executable hfoil
   -- (gloss needs -O2 -threaded)
   Ghc-Options:         -O2 -threaded -Wall
   GHC-Prof-Options:    -auto-all -caf-all -rtsopts
-
---  extra-lib-dirs: /usr/lib
+--  extra-lib-dirs:      /usr/lib

@@ -7,7 +7,7 @@ import Graphics.Gloss.Interface.IO.Animate hiding(scale, Vector)
 import Numeric.LinearAlgebra hiding(i)
 import Control.Monad.IO.Class
 import Control.Concurrent(forkIO)
-import Control.Concurrent.MVar(MVar, newMVar, readMVar, swapMVar)
+import Control.Concurrent.MVar(newMVar, readMVar, swapMVar)
 
 import HFoil.Panels
 import HFoil.Naca4
@@ -34,14 +34,16 @@ main = do
   mpics <- newMVar $ drawFlow (Foil (toNodes (naca4 naca0) nPanels) naca0) (pi/180*4)
   
   putStrLn "Welcome to hfoil\n"
-  _ <- forkIO $ animateIO
+  
+  _ <- forkIO $ runInputT defaultSettings (topLoop (\pics -> swapMVar mpics pics >>= (\_ -> return ())))
+
+  animateIO
     (InWindow
      "hfoil"             -- window title
      (xSize, ySize)      -- window size
      (10, 650))          -- window position
     black                -- background color
     (\_ -> readMVar mpics >>= return . pictures) -- draw function
-  runInputT defaultSettings (topLoop (\pics -> swapMVar mpics pics >>= (\_ -> return ())))
 
 data Foil a = Foil [(a,a)] String
 
