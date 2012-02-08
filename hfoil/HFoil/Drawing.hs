@@ -1,23 +1,61 @@
 {-# OPTIONS_GHC -Wall #-}
+{-# LANGUAGE FlexibleContexts #-}
 
-module HFoil.Drawing( toPic
-                    , draw
+module HFoil.Drawing( drawLine
+                    , drawLineV
+                    , drawFlow
+                    , drawFoil
+                    , drawOnce
+                    , drawNormals
                     ) where
 
-import Graphics.Gloss
+import Graphics.Gloss hiding(Vector)
+import Numeric.LinearAlgebra hiding(scale,i)
+import Foreign.Storable(Storable)
+import qualified Numeric.LinearAlgebra as LA
+
+import HFoil.Foil
 
 xSize, ySize :: Int
 xSize = 800
 ySize = 500
 
-toPic :: Real a => Color -> [(a,a)] -> Picture
-toPic col coords = scale (0.8*(fromIntegral xSize)) (0.8*(fromIntegral xSize))
-                   $ translate (-0.5) 0
-                   $ color col
-                   $ line $ map (\(x,y) -> (realToFrac x, realToFrac y)) coords
+cpScale :: Double
+cpScale = -0.3
 
-draw :: [Picture] -> IO ()
-draw pics = do
+normalLengths :: Double
+normalLengths = 0.01
+
+drawLine :: Real a => Color -> [(a,a)] -> Picture
+drawLine col coords = scale (0.8*(fromIntegral xSize)) (0.8*(fromIntegral xSize))
+                      $ translate (-0.5) 0
+                      $ color col
+                      $ line $ map (\(x,y) -> (realToFrac x, realToFrac y)) coords
+
+drawLineV :: (Real a, Storable a) => Color -> (Vector a, Vector a) -> Picture
+drawLineV col (vx, vy) = drawLine col $ zip (toList vx) (toList vy)
+
+drawFoil :: (Real a, Storable a) => Foil a -> Picture
+drawFoil foil = drawLineV white (pNodes foil)
+
+drawNormals :: Foil Double -> Picture
+drawNormals foil = pictures $ map (\(xy0, xy1) -> drawLine green [xy0, xy1]) (zip xy0s xy1s)
+  where
+    xy0s = zip (toList xm) (toList ym)
+    xy1s = zip (toList (xm + (LA.scale normalLengths xUnitNormal))) (toList (ym + (LA.scale normalLengths yUnitNormal)))
+    
+    (xUnitNormal, yUnitNormal) = pUnitNormals foil
+    (xm, ym) = pMidpoints foil
+    
+drawFlow :: Foil Double -> (Vector Double, b) -> [Picture]
+drawFlow foil flowSolution = [drawFoil foil, drawNormals foil, drawLineV red (xs, mcps)]
+  where
+    mV = fst $ flowSolution
+    (xs, _) = pMidpoints foil
+    mcps = LA.scale cpScale (1 - (mV*mV))
+
+drawOnce :: [Picture] -> IO ()
+drawOnce pics = do
   display 
     (InWindow
      "hfoil"             -- window title

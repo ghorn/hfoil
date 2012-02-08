@@ -17,7 +17,7 @@ Flag repl
 
 Library
   Exposed-modules:     HFoil.Naca4
-                       HFoil.Panels
+                       HFoil.Foil
                        HFoil.Drawing
                        HFoil.Flow
 --  Other-modules:       
