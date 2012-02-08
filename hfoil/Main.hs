@@ -46,7 +46,8 @@ foilLoop draw foil = do
   minput <- getInputLine $ "\ESC[1;32m\STXhfoil."++pName foil++">> \ESC[0m\STX"
   case minput of
     Nothing -> return ()
-    Just "quit" -> return ()
+    Just "quit" -> do outputStrLn "gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
+                      foilLoop draw foil
     Just ('a':'l':'f':'a':' ':[]) -> do outputStrLn $ "unrecognized command"
                                         foilLoop draw foil
     Just ('a':'l':'f':'a':' ':alphaDeg) -> do let flow = solveFlow foil (pi/180*(read alphaDeg))
@@ -61,7 +62,8 @@ topLoop draw = do
   minput <- getInputLine "\ESC[1;32m\STXhfoil>> \ESC[0m\STX"
   case minput of
     Nothing -> return ()
-    Just "quit" -> return ()
+    Just "quit" -> do outputStrLn "gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
+                      topLoop draw
     Just ('n':'a':'c':'a':' ':spec) -> do parseNaca draw spec
                                           topLoop draw
     Just "" -> topLoop draw
