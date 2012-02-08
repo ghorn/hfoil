@@ -7,6 +7,7 @@ module HFoil.Drawing( drawLine
                     , drawFoil
                     , drawOnce
                     , drawNormals
+                    , drawForces
                     ) where
 
 import Graphics.Gloss hiding(Vector)
@@ -14,6 +15,7 @@ import Numeric.LinearAlgebra hiding(scale,i)
 import Foreign.Storable(Storable)
 import qualified Numeric.LinearAlgebra as LA
 
+import HFoil.Flow
 import HFoil.Foil
 
 xSize, ySize :: Int
@@ -47,10 +49,22 @@ drawNormals foil = pictures $ map (\(xy0, xy1) -> drawLine green [xy0, xy1]) (zi
     (xUnitNormal, yUnitNormal) = pUnitNormals foil
     (xm, ym) = pMidpoints foil
     
-drawFlow :: Foil Double -> (Vector Double, b) -> [Picture]
-drawFlow foil flowSolution = [drawFoil foil, drawNormals foil, drawLineV red (xs, mcps)]
+drawForces :: FlowSol Double -> Picture
+drawForces flow = pictures $ map (\(xy0, xy1) -> drawLine green [xy0, xy1]) (zip xy0s xy1s)
   where
-    mV = fst $ flowSolution
+    xy0s = zip (toList xm) (toList ym)
+    xy1s = zip (toList (xm + cps*xUnitNormal)) (toList (ym + (cps*yUnitNormal)))
+    cps = LA.scale (0.5*cpScale) (1 - (mV*mV))
+      where
+        mV = fsVs flow
+    (xUnitNormal, yUnitNormal) = pUnitNormals $ fsFoil flow
+    (xm, ym) = pMidpoints $ fsFoil flow
+
+drawFlow :: FlowSol Double -> [Picture]
+drawFlow flow = [drawFoil foil, drawNormals foil, drawLineV red (xs, mcps)]
+  where
+    foil = fsFoil flow
+    mV = fsVs flow
     (xs, _) = pMidpoints foil
     mcps = LA.scale cpScale (1 - (mV*mV))
 

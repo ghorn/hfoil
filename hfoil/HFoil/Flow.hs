@@ -1,7 +1,8 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module HFoil.Flow( solveFlow
+module HFoil.Flow( FlowSol(..)
+                 , solveFlow
                  ) where
 
 import Data.Packed.ST(newMatrix, writeMatrix, freezeMatrix)
@@ -12,12 +13,20 @@ import Foreign.Storable
 
 import HFoil.Foil
 
-solveFlow :: (Num (Vector a), RealFloat a, Field a) => Foil a -> a -> (Vector a, Vector a)
-solveFlow panels alpha = ((mapVector (\q -> cos(q - alpha)) angles) + (mV <> qg), qg)
+data FlowSol a = FlowSol { fsFoil :: Foil a
+                         , fsVs :: Vector a
+                         , fsStrengths :: Vector a
+                         }
+
+solveFlow :: (Num (Vector a), RealFloat a, Field a) => Foil a -> a -> FlowSol a
+solveFlow foil alpha = FlowSol { fsFoil = foil
+                               , fsVs = vs
+                               , fsStrengths = qg
+                               }
   where
-    angles = pAngles panels
-    (mA, mV) = getA panels
-    b = getB panels alpha
+    vs = (mapVector (\q -> cos(q - alpha)) (pAngles foil)) + (mV <> qg)
+    (mA, mV) = getA foil
+    b = getB foil alpha
     qg = flatten $ linearSolve mA b
 
 getB :: (Floating a, Storable a) => Foil a -> a -> Matrix a
@@ -64,9 +73,6 @@ getA panels = ( scale (1/(2*pi)) $ fromBlocks [ [ mS, asColumn $ fromList (map (
               )
   where
     n = (dim (fst (pNodes panels)))-1
---    xns = fromList $ fst (unzip panels)
---    yns = fromList $ snd (unzip panels)
---    (xms,yms) = (\(x,y) -> (fromList x, fromList y)) $ midpoints panels
     
     -- all the indices ready to be mapped over
     ijs :: [[(Int,Int)]]
