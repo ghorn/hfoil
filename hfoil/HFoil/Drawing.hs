@@ -66,9 +66,9 @@ drawNormals foil = pictures $ map (\(xy0, xy1) -> drawLine green [xy0, xy1]) (zi
     (xm, ym) = pMidpoints foil
 
 colorFun :: (Fractional a, Real a) => a -> a -> a -> Color
-colorFun min' max' cp = makeColor (1-x) (1-x) x 1
+colorFun min' max' x' = makeColor (1-x) (1-x) x 1
   where
-    x = realToFrac $ (cp - min')/(max'-min')
+    x = realToFrac $ (x' - min')/(max'-min')
 
 drawForces :: FlowSol Double -> Picture
 drawForces flow = pictures $ map (\(xy0, xy1, cp) -> drawLine (colorFun minCp maxCp cp) [xy0, xy1])
@@ -82,9 +82,8 @@ drawForces flow = pictures $ map (\(xy0, xy1, cp) -> drawLine (colorFun minCp ma
     
     c = 0.1
     
-    cps = LA.scale (0.5*cpScale) (fsCps flow)
-    maxCp = maxElement cps
-    minCp = minElement cps
+    maxCp = maxElement (fsCps flow)
+    minCp = minElement (fsCps flow)
 
 drawColoredFoil :: [Color] -> Foil Double -> Picture
 drawColoredFoil colors foil = pictures $ map (\(xy0, xy1, col) -> drawLine col [xy0, xy1]) (zip3 xy0s xy1s colors)
@@ -100,7 +99,7 @@ drawSolution flow = pictures [ drawText white (0.45, 0.8) 0.15 m0
                              , drawText white (0.45, 0.35) 0.15 m3
                              , drawForces flow
                              , drawColoredFoil colors foil
-                             , drawLineV red (xs, mcps) -- cp graph
+                             , drawLineV red (xs, LA.scale cpScale cps) -- cp graph
                              , drawCircle white (fst $ fsCenterPressure flow, snd $ fsCenterPressure flow) 0.006
                              , drawCircle white (fst $ fsCenterPressure flow, 0) 0.006
                              ]
@@ -109,7 +108,6 @@ drawSolution flow = pictures [ drawText white (0.45, 0.8) 0.15 m0
     cps = fsCps flow
     
     (xs, _) = pMidpoints foil
-    mcps = LA.scale cpScale cps
     
     [m0,m1,m2,m3] = [ pName foil
                     , printf ("alpha: %.6f") ((fsAlpha flow)*180/pi)
