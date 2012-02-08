@@ -69,11 +69,14 @@ drawForces flow = pictures $ map (\(xy0, xy1, cp) -> drawLine (colorFun minCp ma
                   $ zip3 xy0s xy1s (toList (fsCps flow))
   where
     xy0s = zip (toList xm) (toList ym)
-    xy1s = zip (toList (xm + cps*xUnitNormal)) (toList (ym + (cps*yUnitNormal)))
-    cps = LA.scale (0.5*cpScale) (fsCps flow)
-    (xUnitNormal, yUnitNormal) = pUnitNormals $ fsFoil flow
+    xy1s = zip (toList (xm + xPressures)) (toList (ym + yPressures))
+    (xPressures, yPressures) = (\(x,y) -> (LA.scale c x/lengths, LA.scale c y/lengths)) (fsForces flow)
+    lengths = pLengths $ fsFoil flow
     (xm, ym) = pMidpoints $ fsFoil flow
     
+    c = 0.1
+    
+    cps = LA.scale (0.5*cpScale) (fsCps flow)
     maxCp = maxElement cps
     minCp = minElement cps
 
@@ -101,19 +104,10 @@ drawSolution flow = pictures [ drawText white (0.45, 0.8) 0.15 m0
     mcps = LA.scale cpScale cps
     
     [m0,m1,m2,m3] = [ pName foil
-                    , printf ("alpha: %.6f") (q*180/pi)
-                    , printf ("Cl: %.6f") cl
-                    , printf ("Cd: %.6f") cd
+                    , printf ("alpha: %.6f") ((fsAlpha flow)*180/pi)
+                    , printf ("Cl: %.6f") (fsCl flow)
+                    , printf ("Cd: %.6f") (fsCd flow)
                     ]
-      where
-        xForces = -cps*(fst $ pNormals foil)
-        yForces = -cps*(snd $ pNormals foil)
-        xf = sumElements xForces
-        yf = sumElements yForces
-        
-        q = fsAlpha flow
-        cd =  xf*(cos q) + yf*(sin q)
-        cl = -xf*(sin q) + yf*(cos q)
         
     colors = map (colorFun (minElement cps) (maxElement cps)) (toList cps)
 

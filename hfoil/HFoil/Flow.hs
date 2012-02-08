@@ -18,20 +18,37 @@ data FlowSol a = FlowSol { fsFoil :: Foil a
                          , fsCps :: Vector a
                          , fsStrengths :: Vector a
                          , fsAlpha :: a
+                         , fsForces :: (Vector a, Vector a)
+                         , fsCl :: a
+                         , fsCd :: a
                          }
 
 solveFlow :: (Num (Vector a), RealFloat a, Field a) => Foil a -> a -> FlowSol a
 solveFlow foil alpha = FlowSol { fsFoil = foil
                                , fsVs = vs
-                               , fsCps = 1 - vs*vs
+                               , fsCps = cps
                                , fsStrengths = qg
                                , fsAlpha = alpha
+                               , fsForces = (xForces, yForces)
+                               , fsCl = cl
+                               , fsCd = cd
                                }
   where
     vs = (mapVector (\q -> cos(q - alpha)) (pAngles foil)) + (mV <> qg)
     (mA, mV) = getA foil
     b = getB foil alpha
     qg = flatten $ linearSolve mA b
+    
+    cps = 1 - vs*vs
+    
+    xForces = -cps*(fst $ pNormals foil)
+    yForces = -cps*(snd $ pNormals foil)
+    xf = sumElements xForces
+    yf = sumElements yForces
+        
+    cd =  xf*(cos alpha) + yf*(sin alpha)
+    cl = -xf*(sin alpha) + yf*(cos alpha)
+
 
 getB :: (Floating a, Storable a) => Foil a -> a -> Matrix a
 getB panels alpha = asColumn $ fromList $ (map (\i -> sin $ (angles @> i) - alpha) [0..n-1]) ++

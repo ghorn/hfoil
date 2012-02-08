@@ -40,7 +40,6 @@ main = do
     black                -- background color
     (\_ -> readMVar mpics >>= return . pictures) -- draw function
 
-
 foilLoop :: ([Picture] -> IO ()) -> Foil Double -> InputT IO ()
 foilLoop draw foil = do
   minput <- getInputLine $ "\ESC[1;32m\STXhfoil."++pName foil++">> \ESC[0m\STX"
