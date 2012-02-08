@@ -21,6 +21,7 @@ data FlowSol a = FlowSol { fsFoil :: Foil a
                          , fsForces :: (Vector a, Vector a)
                          , fsCl :: a
                          , fsCd :: a
+                         , fsCenterPressure :: (a,a)
                          }
 
 solveFlow :: (Num (Vector a), RealFloat a, Field a) => Foil a -> a -> FlowSol a
@@ -32,6 +33,7 @@ solveFlow foil alpha = FlowSol { fsFoil = foil
                                , fsForces = (xForces, yForces)
                                , fsCl = cl
                                , fsCd = cd
+                               , fsCenterPressure = (xCp, yCp)
                                }
   where
     vs = (mapVector (\q -> cos(q - alpha)) (pAngles foil)) + (mV <> qg)
@@ -48,6 +50,10 @@ solveFlow foil alpha = FlowSol { fsFoil = foil
         
     cd =  xf*(cos alpha) + yf*(sin alpha)
     cl = -xf*(sin alpha) + yf*(cos alpha)
+
+    (xs,ys) = pMidpoints foil
+    xCp = (sumElements (xs*yForces)) / (sumElements yForces)
+    yCp = (sumElements (ys*xForces)) / (sumElements xForces)
 
 
 getB :: (Floating a, Storable a) => Foil a -> a -> Matrix a

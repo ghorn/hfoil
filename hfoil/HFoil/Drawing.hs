@@ -44,6 +44,12 @@ drawLine col coords = scale (border*(fromIntegral xSize)) (border*(fromIntegral 
                       $ color col
                       $ line $ map (\(x,y) -> (realToFrac x, realToFrac y)) coords
 
+drawCircle :: Real a => Color -> (a, a) -> Float -> Picture
+drawCircle col (x,y) size = scale (border*(fromIntegral xSize)) (border*(fromIntegral xSize))
+                            $ translate (-0.5 + realToFrac x) (realToFrac y)
+                            $ color col
+                            $ Circle size
+
 drawLineV :: (Real a, Storable a) => Color -> (Vector a, Vector a) -> Picture
 drawLineV col (vx, vy) = drawLine col $ zip (toList vx) (toList vy)
 
@@ -92,9 +98,11 @@ drawSolution flow = pictures [ drawText white (0.45, 0.8) 0.15 m0
                              , drawText white (0.45, 0.65) 0.15 m1
                              , drawText white (0.45, 0.5) 0.15 m2
                              , drawText white (0.45, 0.35) 0.15 m3
---                             , drawForces flow
+                             , drawForces flow
                              , drawColoredFoil colors foil
                              , drawLineV red (xs, mcps) -- cp graph
+                             , drawCircle white (fst $ fsCenterPressure flow, snd $ fsCenterPressure flow) 0.006
+                             , drawCircle white (fst $ fsCenterPressure flow, 0) 0.006
                              ]
   where
     foil = fsFoil flow
