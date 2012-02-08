@@ -8,7 +8,7 @@ module HFoil.Naca4( Naca4(..)
                   ) where
 
 naca4 :: (Read a, Fractional a) => String -> Naca4 a
-naca4 (m_:p_:t0:t1:[]) = Naca4 m p t
+naca4 name@(m_:p_:t0:t1:[]) = Naca4 m p t ("NACA "++name)
   where
     m = 0.01 * read [m_]
     p = 0.1  * read [p_]
@@ -21,6 +21,7 @@ naca4 _ = error "not a 4 digit airfoil"
 data Naca4 a = Naca4 { naca4_m :: a
                      , naca4_p :: a
                      , naca4_t :: a
+                     , naca4_name :: String
                      } deriving Show
 
 --  xc: x/chord

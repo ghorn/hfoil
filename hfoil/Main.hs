@@ -38,7 +38,7 @@ main = do
       foil0 = toFoil (naca4 naca0) nPanels
       flow0 = solveFlow foil0 (pi/180*alfaDeg0)
   go
-  mpics <- newMVar $ drawFlow flow0
+  mpics <- newMVar $ [drawFlow flow0]
   
   putStrLn "Welcome to hfoil\n"
   
@@ -63,7 +63,7 @@ foilLoop draw foil = do
     Just ('a':'l':'f':'a':' ':[]) -> do outputStrLn $ "unrecognized command"
                                         foilLoop draw foil
     Just ('a':'l':'f':'a':' ':alphaDeg) -> do let flow = solveFlow foil (pi/180*(read alphaDeg))
-                                              liftIO $ draw $ drawFlow flow
+                                              liftIO $ draw $ [drawFlow flow]
                                               foilLoop draw foil
     Just "" -> return ()
     Just input -> do outputStrLn $ "unrecognized command \"" ++ input ++ "\""
@@ -84,7 +84,7 @@ topLoop draw = do
 parseNaca :: ([Picture] -> IO ()) -> String -> InputT IO ()
 parseNaca draw str 
   | length str == 4 = do let foil = toFoil (naca4 str :: Naca4 Double) nPanels
-                         liftIO $ draw [drawFoil foil]
+                         liftIO $ draw [drawFoil foil, drawNormals foil]
                          foilLoop draw foil
   | otherwise = do outputStrLn $ "Not 4 digits"
                    return ()

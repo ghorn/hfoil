@@ -16,6 +16,7 @@ data Foil a = Foil { pNodes :: (Vector a, Vector a)
                    , pTangents :: (Vector a, Vector a)
                    , pNormals :: (Vector a, Vector a)
                    , pUnitNormals :: (Vector a, Vector a)
+                   , pName :: String
                    }
 
 toFoil :: (Enum a, Floating (Vector a), RealFloat a, Field a) => Naca4.Naca4 a -> Int -> Foil a
@@ -26,6 +27,7 @@ toFoil foil nPanels = Foil { pNodes = (xNodes, yNodes)
                            , pTangents = (xTangents, yTangents)
                            , pNormals = (xNormals, yNormals)
                            , pUnitNormals = (xUnitNormals, yUnitNormals)
+                           , pName = Naca4.naca4_name foil
                            }
   where
     listNodes = [(1,0)]++reverse lower++[(0,0)]++upper++[(1,0)]

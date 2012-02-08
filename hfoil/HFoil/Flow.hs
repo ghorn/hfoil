@@ -15,13 +15,17 @@ import HFoil.Foil
 
 data FlowSol a = FlowSol { fsFoil :: Foil a
                          , fsVs :: Vector a
+                         , fsCps :: Vector a
                          , fsStrengths :: Vector a
+                         , fsAlpha :: a
                          }
 
 solveFlow :: (Num (Vector a), RealFloat a, Field a) => Foil a -> a -> FlowSol a
 solveFlow foil alpha = FlowSol { fsFoil = foil
                                , fsVs = vs
+                               , fsCps = 1 - vs*vs
                                , fsStrengths = qg
+                               , fsAlpha = alpha
                                }
   where
     vs = (mapVector (\q -> cos(q - alpha)) (pAngles foil)) + (mV <> qg)
