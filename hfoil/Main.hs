@@ -21,24 +21,12 @@ xSize, ySize :: Int
 xSize = 800
 ySize = 500
 
-
-go :: IO ()
-go = do
-  let naca0 = "2412"
-      alfaDeg0 = 4
-      foil0 = toFoil (naca4 naca0) nPanels
-      flow0 = solveFlow foil0 (pi/180*alfaDeg0)
-  
-  drawOnce [drawFoil foil0, drawForces flow0]
-
 main :: IO ()
 main = do
   let naca0 = "2412"
       alfaDeg0 = 4
-      foil0 = toFoil (naca4 naca0) nPanels
-      flow0 = solveFlow foil0 (pi/180*alfaDeg0)
-  go
-  mpics <- newMVar $ [drawFlow flow0]
+      flow0 = solveFlow (toFoil (naca4 naca0) nPanels) (pi/180*alfaDeg0)
+  mpics <- newMVar $ [drawSolution flow0]
   
   putStrLn "Welcome to hfoil\n"
   
@@ -55,15 +43,14 @@ main = do
 
 foilLoop :: ([Picture] -> IO ()) -> Foil Double -> InputT IO ()
 foilLoop draw foil = do
---  minput <- getInputLine $ "\ESC[1;32m\STXhfoil."++pName foil++">> \ESC[0m\STX"
-  minput <- getInputLine $ "\ESC[1;32m\STXhfoil.oper>> \ESC[0m\STX"
+  minput <- getInputLine $ "\ESC[1;32m\STXhfoil."++pName foil++">> \ESC[0m\STX"
   case minput of
     Nothing -> return ()
     Just "quit" -> return ()
     Just ('a':'l':'f':'a':' ':[]) -> do outputStrLn $ "unrecognized command"
                                         foilLoop draw foil
     Just ('a':'l':'f':'a':' ':alphaDeg) -> do let flow = solveFlow foil (pi/180*(read alphaDeg))
-                                              liftIO $ draw $ [drawFlow flow]
+                                              liftIO $ draw $ [drawSolution flow]
                                               foilLoop draw foil
     Just "" -> return ()
     Just input -> do outputStrLn $ "unrecognized command \"" ++ input ++ "\""

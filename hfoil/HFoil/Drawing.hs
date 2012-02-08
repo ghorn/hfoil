@@ -3,12 +3,11 @@
 
 module HFoil.Drawing( drawLine
                     , drawLineV
-                    , drawFlow
+                    , drawSolution
                     , drawFoil
                     , drawOnce
                     , drawNormals
                     , drawForces
-                    , drawCps
                     ) where
 
 import Graphics.Gloss hiding(Vector)
@@ -59,28 +58,41 @@ drawNormals foil = pictures $ map (\(xy0, xy1) -> drawLine green [xy0, xy1]) (zi
     
     (xUnitNormal, yUnitNormal) = pUnitNormals foil
     (xm, ym) = pMidpoints foil
-    
+
+colorFun :: (Fractional a, Real a) => a -> a -> a -> Color
+colorFun min' max' cp = makeColor (1-x) (1-x) x 1
+  where
+    x = realToFrac $ (cp - min')/(max'-min')
+
 drawForces :: FlowSol Double -> Picture
-drawForces flow = pictures $ map (\(xy0, xy1) -> drawLine blue [xy0, xy1]) (zip xy0s xy1s)
+drawForces flow = pictures $ map (\(xy0, xy1, cp) -> drawLine (colorFun minCp maxCp cp) [xy0, xy1])
+                  $ zip3 xy0s xy1s (toList (fsCps flow))
   where
     xy0s = zip (toList xm) (toList ym)
     xy1s = zip (toList (xm + cps*xUnitNormal)) (toList (ym + (cps*yUnitNormal)))
     cps = LA.scale (0.5*cpScale) (fsCps flow)
     (xUnitNormal, yUnitNormal) = pUnitNormals $ fsFoil flow
     (xm, ym) = pMidpoints $ fsFoil flow
+    
+    maxCp = maxElement cps
+    minCp = minElement cps
 
-drawFlow :: FlowSol Double -> Picture
-drawFlow flow = pictures [drawFoil foil, drawCps flow, drawForces flow]
+drawColoredFoil :: [Color] -> Foil Double -> Picture
+drawColoredFoil colors foil = pictures $ map (\(xy0, xy1, col) -> drawLine col [xy0, xy1]) (zip3 xy0s xy1s colors)
   where
-    foil = fsFoil flow
+    xys = (\(x,y) -> zip (toList x) (toList y)) $ pNodes foil
+    xy0s = tail xys
+    xy1s = init xys
 
-drawCps :: FlowSol Double -> Picture
-drawCps flow = pictures $ [ drawLineV red (xs, mcps)
-                          , drawText white (0.45, 0.8) 0.15 m0
-                          , drawText white (0.45, 0.65) 0.15 m1
-                          , drawText white (0.45, 0.5) 0.15 m2
-                          , drawText white (0.45, 0.35) 0.15 m3
-                          ]
+drawSolution :: FlowSol Double -> Picture
+drawSolution flow = pictures [ drawText white (0.45, 0.8) 0.15 m0
+                             , drawText white (0.45, 0.65) 0.15 m1
+                             , drawText white (0.45, 0.5) 0.15 m2
+                             , drawText white (0.45, 0.35) 0.15 m3
+--                             , drawForces flow
+                             , drawColoredFoil colors foil
+                             , drawLineV red (xs, mcps) -- cp graph
+                             ]
   where
     foil = fsFoil flow
     cps = fsCps flow
@@ -88,20 +100,24 @@ drawCps flow = pictures $ [ drawLineV red (xs, mcps)
     (xs, _) = pMidpoints foil
     mcps = LA.scale cpScale cps
     
-    m0 = pName foil
-    m1 = printf ("alpha: %.6f") (q*180/pi)
-    m2 = printf ("Cl: %.6f") cl
-    m3 = printf ("Cd: %.6f") cd
-    
-    xForces = -cps*(fst $ pNormals foil)
-    yForces = -cps*(snd $ pNormals foil)
-    xf = sumElements xForces
-    yf = sumElements yForces
-    
-    q = fsAlpha flow
-    cd =  xf*(cos q) + yf*(sin q)
-    cl = -xf*(sin q) + yf*(cos q)
+    [m0,m1,m2,m3] = [ pName foil
+                    , printf ("alpha: %.6f") (q*180/pi)
+                    , printf ("Cl: %.6f") cl
+                    , printf ("Cd: %.6f") cd
+                    ]
+      where
+        xForces = -cps*(fst $ pNormals foil)
+        yForces = -cps*(snd $ pNormals foil)
+        xf = sumElements xForces
+        yf = sumElements yForces
         
+        q = fsAlpha flow
+        cd =  xf*(cos q) + yf*(sin q)
+        cl = -xf*(sin q) + yf*(cos q)
+        
+    colors = map (colorFun (minElement cps) (maxElement cps)) (toList cps)
+
+
 
 drawOnce :: [Picture] -> IO ()
 drawOnce pics = do
