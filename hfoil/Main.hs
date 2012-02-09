@@ -25,7 +25,7 @@ main :: IO ()
 main = do
   let naca0 = "2412"
       alfaDeg0 = 4
-      flow0 = solveFlow (toFoil (naca4 naca0) nPanels) (pi/180*alfaDeg0)
+      flow0 = solveFlow (panelizeNaca4 (naca4 naca0) nPanels) (pi/180*alfaDeg0)
   mpics <- newMVar $ [drawSolution flow0]
   
   putStrLn "Welcome to hfoil\n"
@@ -71,7 +71,7 @@ topLoop draw = do
 
 parseNaca :: ([Picture] -> IO ()) -> String -> InputT IO ()
 parseNaca draw str 
-  | length str == 4 = do let foil = toFoil (naca4 str :: Naca4 Double) nPanels
+  | length str == 4 = do let foil = panelizeNaca4 (naca4 str :: Naca4 Double) nPanels
                          liftIO $ draw [drawFoil foil, drawNormals foil]
                          foilLoop draw foil
   | otherwise = do outputStrLn $ "Not 4 digits"
