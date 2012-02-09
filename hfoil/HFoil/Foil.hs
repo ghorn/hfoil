@@ -4,12 +4,24 @@
 module HFoil.Foil( Foil(..)
                  , toFoil
                  , panelizeNaca4
+                 , loadFoil
                  ) where
 
+import System.Directory(doesFileExist)
 import Numeric.LinearAlgebra
 import Data.Tuple.Utils(fst3)
 
 import qualified HFoil.Naca4 as Naca4
+
+type Panels a = [(a,a)]
+
+data Elements a = SingleElement (Panels a)
+                | MultiElement [Panels a]
+
+instance Show (Elements a) where
+  show (SingleElement x) = "{SingleElement: " ++ show (length x) ++ " nodes}"
+  show (MultiElement x) = "{MultiElement: " ++ show (length x) ++ " elements, " ++
+                          show (map length x) ++ " nodes == "++show (sum (map length x))++" total nodes}"
 
 data Foil a = Foil { pNodes :: (Vector a, Vector a)
                    , pLengths :: Vector a
@@ -42,6 +54,37 @@ toFoil name xynodes = Foil { pNodes = (xNodes, yNodes)
     (xNormals, yNormals) = (-yTangents, xTangents)
     lengths = mapVector sqrt $ xTangents*xTangents + yTangents*yTangents
     (xUnitNormals, yUnitNormals) = (xNormals/lengths, yNormals/lengths)
+
+parseRawFoil :: Read a => String -> Elements a
+parseRawFoil raw
+  -- bad data
+  | any (\x -> 2 /= length x) (concat groupsOfLines) = error "parseRawFoil fail, bad foil date?"
+  -- single element
+  | length elements == 1 = SingleElement (head elements)
+  -- multi element
+  | length elements > 1 = MultiElement elements
+  | otherwise =  error "parseRawFoil fail, bad foil date?"
+  where
+    elements = map (map (\(x:y:[]) -> (read x, read y))) groupsOfLines
+    
+    -- group lines by splitting at empty lines
+    groupsOfLines :: [[[String]]]
+    groupsOfLines = f (lines raw)
+      where
+        f [] = []
+        f ([]:xs) = f xs
+        f xs = (map words fst'):(f snd')
+          where
+            (fst', snd') = break (\x -> 0 == length x) xs
+
+loadFoil :: FilePath -> IO (Maybe (Elements Double))
+loadFoil filename = do
+  exists <- doesFileExist filename
+  if exists
+    then do rawData <- readFile filename
+            return (Just (parseRawFoil rawData))
+    else do putStrLn $ "ERROR: file \"" ++ filename ++ "\" couldn't be found"
+            return Nothing
 
 
 panelizeNaca4 :: (Enum a, Floating (Vector a), RealFloat a, Field a) =>
