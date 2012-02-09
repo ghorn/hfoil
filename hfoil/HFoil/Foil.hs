@@ -5,11 +5,13 @@ module HFoil.Foil( Foil(..)
                  , toFoil
                  , panelizeNaca4
                  , loadFoil
+                 , getUIUCFoil
                  ) where
 
 import System.Directory(doesFileExist)
 import Numeric.LinearAlgebra
 import Data.Tuple.Utils(fst3)
+import Network.HTTP(simpleHTTP, getRequest, getResponseBody)
 
 import qualified HFoil.Naca4 as Naca4
 
@@ -55,10 +57,17 @@ toFoil name xynodes = Foil { pNodes = (xNodes, yNodes)
     lengths = mapVector sqrt $ xTangents*xTangents + yTangents*yTangents
     (xUnitNormals, yUnitNormals) = (xNormals/lengths, yNormals/lengths)
 
+
+getUIUCFoil :: Read a => String -> IO (Elements a)
+getUIUCFoil name = do
+  let file = "http://www.ae.illinois.edu/m-selig/ads/coord/" ++ name ++ ".dat"
+  dl <- simpleHTTP (getRequest file) >>= getResponseBody
+  return (parseRawFoil dl)
+
 parseRawFoil :: Read a => String -> Elements a
 parseRawFoil raw
   -- bad data
-  | any (\x -> 2 /= length x) (concat groupsOfLines) = error "parseRawFoil fail, bad foil date?"
+  | any (\x -> 2 /= length x) (concat groupsOfLines) = error $ "parseRawFoil fail, bad foil data?" ++ show groupsOfLines
   -- single element
   | length elements == 1 = SingleElement (head elements)
   -- multi element
@@ -76,7 +85,7 @@ parseRawFoil raw
         f xs = (map words fst'):(f snd')
           where
             (fst', snd') = break (\x -> 0 == length x) xs
-
+  
 loadFoil :: FilePath -> IO (Maybe (Elements Double))
 loadFoil filename = do
   exists <- doesFileExist filename

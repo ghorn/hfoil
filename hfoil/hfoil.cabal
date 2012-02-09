@@ -27,7 +27,10 @@ Library
                        MissingH >= 1.1,
                        hmatrix >= 0.12,
                        haskeline >= 0.6,
-                       transformers >= 0.2
+                       transformers >= 0.2,
+                       directory >= 1.1,
+                       HTTP >= 4000.2
+
   Ghc-Options:         -Wall
   Ghc-Prof-Options:    -prof -auto-all
 
