@@ -89,7 +89,9 @@ parseRawFoil raw
             (fst', snd') = break (\x -> 0 == length x) xs
   
 loadFoil :: FilePath -> IO (Maybe (Foil Double))
-loadFoil filename = do
+loadFoil filename' = do
+      -- poor man's strip, why isn't this standard???
+  let filename = reverse $ dropWhile (== ' ') $ reverse $ dropWhile (== ' ') filename'
   exists <- doesFileExist filename
   if exists
     then do rawData <- readFile filename

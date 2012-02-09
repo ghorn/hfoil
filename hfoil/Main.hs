@@ -65,6 +65,13 @@ topLoop draw = do
                       topLoop draw
     Just ('n':'a':'c':'a':' ':spec) -> do parseNaca draw spec
                                           topLoop draw
+    Just ('l':'o':'a':'d':' ':name) -> do
+      foil <- liftIO (loadFoil name)
+      case foil of Nothing -> outputStrLn $ "error loading \""++name++"\""
+                   (Just foil') -> do liftIO $ draw [drawFoil foil', drawNormals foil']
+                                      foilLoop draw foil'
+      topLoop draw
+
     Just "" -> topLoop draw
     Just input -> do outputStrLn $ "unrecognized command \"" ++ input ++ "\""
                      topLoop draw
