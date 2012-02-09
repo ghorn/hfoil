@@ -13,29 +13,31 @@ import Foreign.Storable
 
 import HFoil.Foil
 
-data FlowSol a = FlowSol { fsFoil :: Foil a
-                         , fsVs :: Vector a
-                         , fsCps :: Vector a
-                         , fsStrengths :: Vector a
-                         , fsAlpha :: a
-                         , fsForces :: (Vector a, Vector a)
-                         , fsCl :: a
-                         , fsCd :: a
-                         , fsCenterPressure :: (a,a)
+data FlowSol a = FlowSol { solFoil :: Foil a
+                         , solVs :: Vector a
+                         , solCps :: Vector a
+                         , solStrengths :: Vector a
+                         , solAlpha :: a
+                         , solForces :: (Vector a, Vector a)
+                         , solCl :: a
+                         , solCd :: a
+                         , solCenterPressure :: (a,a)
                          }
 
 solveFlow :: (Num (Vector a), RealFloat a, Field a) => Foil a -> a -> FlowSol a
-solveFlow foil alpha = FlowSol { fsFoil = foil
-                               , fsVs = vs
-                               , fsCps = cps
-                               , fsStrengths = qsGamma
-                               , fsAlpha = alpha
-                               , fsForces = (xForces, yForces)
-                               , fsCl = cl
-                               , fsCd = cd
-                               , fsCenterPressure = (xCp, yCp)
+solveFlow foil alpha = FlowSol { solFoil = foil
+                               , solVs = vs
+                               , solCps = cps
+                               , solStrengths = qsGamma
+                               , solAlpha = alpha
+                               , solForces = (xForces, yForces)
+                               , solCl = cl
+                               , solCd = cd
+                               , solCenterPressure = (xCp, yCp)
                                }
   where
+--    kuttaIndices = pKuttaIndices foil
+    
     -- surface velocities
     (vs,qsGamma) = ( (mapVector (\q -> cos(q - alpha)) (fAngles foil)) + (mV <> qsGamma')
                    , qsGamma'

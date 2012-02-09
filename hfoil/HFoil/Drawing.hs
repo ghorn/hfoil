@@ -72,18 +72,18 @@ colorFun min' max' x' = makeColor (1-x) (1-x) x 1
 
 drawForces :: FlowSol Double -> Picture
 drawForces flow = pictures $ map (\(xy0, xy1, cp) -> drawLine (colorFun minCp maxCp cp) [xy0, xy1])
-                  $ zip3 xy0s xy1s (toList (fsCps flow))
+                  $ zip3 xy0s xy1s (toList (solCps flow))
   where
     xy0s = zip (toList xm) (toList ym)
     xy1s = zip (toList (xm + xPressures)) (toList (ym + yPressures))
-    (xPressures, yPressures) = (\(x,y) -> (LA.scale c x/lengths, LA.scale c y/lengths)) (fsForces flow)
-    lengths = fLengths $ fsFoil flow
-    (xm, ym) = fMidpoints $ fsFoil flow
+    (xPressures, yPressures) = (\(x,y) -> (LA.scale c x/lengths, LA.scale c y/lengths)) (solForces flow)
+    lengths = fLengths $ solFoil flow
+    (xm, ym) = fMidpoints $ solFoil flow
     
     c = 0.1
     
-    maxCp = maxElement (fsCps flow)
-    minCp = minElement (fsCps flow)
+    maxCp = maxElement (solCps flow)
+    minCp = minElement (solCps flow)
 
 drawColoredFoil :: [Color] -> Foil Double -> Picture
 drawColoredFoil colors foil = pictures $ map (\(xy0, xy1, col) -> drawLine col [xy0, xy1]) (zip3 xy0s xy1s colors)
@@ -100,19 +100,19 @@ drawSolution flow = pictures [ drawText white (0.45, 0.8) 0.15 m0
                              , drawForces flow
                              , drawColoredFoil colors foil
                              , drawLineV red (xs, LA.scale cpScale cps) -- cp graph
-                             , drawCircle white (fst $ fsCenterPressure flow, snd $ fsCenterPressure flow) 0.006
-                             , drawCircle white (fst $ fsCenterPressure flow, 0) 0.006
+                             , drawCircle white (fst $ solCenterPressure flow, snd $ solCenterPressure flow) 0.006
+                             , drawCircle white (fst $ solCenterPressure flow, 0) 0.006
                              ]
   where
-    foil = fsFoil flow
-    cps = fsCps flow
+    foil = solFoil flow
+    cps = solCps flow
     
     (xs, _) = fMidpoints foil
     
     [m0,m1,m2,m3] = [ fName foil
-                    , printf ("alpha: %.6f") ((fsAlpha flow)*180/pi)
-                    , printf ("Cl: %.6f") (fsCl flow)
-                    , printf ("Cd: %.6f") (fsCd flow)
+                    , printf ("alpha: %.6f") ((solAlpha flow)*180/pi)
+                    , printf ("Cl: %.6f") (solCl flow)
+                    , printf ("Cd: %.6f") (solCd flow)
                     ]
         
     colors = map (colorFun (minElement cps) (maxElement cps)) (toList cps)
