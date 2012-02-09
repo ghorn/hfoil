@@ -60,21 +60,26 @@ toElement xynodes = Element { fNodes = (xNodes, yNodes)
     (xUnitNormals, yUnitNormals) = (xNormals/lengths, yNormals/lengths)
 
 
+-- why isn't this standard???
+poorMansStrip :: String -> String
+poorMansStrip str = reverse $ dropWhile (== ' ') $ reverse $ dropWhile (== ' ') str
+
 getUIUCFoil :: (Num (Vector a), Read a, RealFloat a, Container Vector a) =>
-               String -> IO (Foil a)
-getUIUCFoil name = do
+               String -> IO (Either String (Foil a))
+getUIUCFoil name' = do
+  let name = poorMansStrip name'
   let file = "http://www.ae.illinois.edu/m-selig/ads/coord/" ++ name ++ ".dat"
   dl <- simpleHTTP (getRequest file) >>= getResponseBody
   return (parseRawFoil dl name)
 
 parseRawFoil :: (Num (Vector a), Read a, RealFloat a, Container Vector a) =>
-                String -> String -> Foil a
-parseRawFoil raw
+                String -> String -> Either String (Foil a)
+parseRawFoil raw name
   -- bad data
-  | any (\x -> 2 /= length x) (concat groupsOfLines) = error $ "parseRawFoil fail, bad foil data?" ++ show groupsOfLines
+  | any (\x -> 2 /= length x) (concat groupsOfLines) = Left (raw ++ "\nError parsing the above data")
   -- single element
-  | length elements > 0 = Foil (map toElement elements)
-  | otherwise =  error "parseRawFoil fail, bad foil date?"
+  | length elements > 0 = Right (Foil (map toElement elements) name)
+  | otherwise =  Left (raw ++ "\nError parsing the above data")
   where
     elements = map (map (\(x:y:[]) -> (read x, read y))) groupsOfLines
     
@@ -88,17 +93,14 @@ parseRawFoil raw
           where
             (fst', snd') = break (\x -> 0 == length x) xs
   
-loadFoil :: FilePath -> IO (Maybe (Foil Double))
+loadFoil :: FilePath -> IO (Either String (Foil Double))
 loadFoil filename' = do
-      -- poor man's strip, why isn't this standard???
-  let filename = reverse $ dropWhile (== ' ') $ reverse $ dropWhile (== ' ') filename'
+  let filename = poorMansStrip filename'
   exists <- doesFileExist filename
   if exists
     then do rawData <- readFile filename
-            return (Just (parseRawFoil rawData filename)) -- use filename as name
-    else do putStrLn $ "ERROR: file \"" ++ filename ++ "\" couldn't be found"
-            return Nothing
-
+            return (parseRawFoil rawData filename) -- use filename as name
+    else return (Left ("file \"" ++ filename ++ "\" couldn't be found"))
 
 panelizeNaca4 :: (Enum a, Floating (Vector a), RealFloat a, Field a) =>
                 Naca4.Naca4 a -> Int -> Foil a

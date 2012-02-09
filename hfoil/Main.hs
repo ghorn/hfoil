@@ -67,9 +67,15 @@ topLoop draw = do
                                           topLoop draw
     Just ('l':'o':'a':'d':' ':name) -> do
       foil <- liftIO (loadFoil name)
-      case foil of Nothing -> outputStrLn $ "error loading \""++name++"\""
-                   (Just foil') -> do liftIO $ draw [drawFoil foil', drawNormals foil']
-                                      foilLoop draw foil'
+      case foil of Left errMsg -> outputStrLn errMsg
+                   Right foil' -> do liftIO $ draw [drawFoil foil', drawNormals foil']
+                                     foilLoop draw foil'
+      topLoop draw
+    Just ('u':'i':'u':'c':' ':name) -> do
+      efoil <- liftIO (getUIUCFoil name)
+      case efoil of Left errMsg -> outputStrLn errMsg
+                    Right foil -> do liftIO $ draw [drawFoil foil, drawNormals foil]
+                                     foilLoop draw foil
       topLoop draw
 
     Just "" -> topLoop draw
