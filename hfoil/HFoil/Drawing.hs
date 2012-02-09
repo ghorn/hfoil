@@ -54,7 +54,7 @@ drawLineV :: (Real a, Storable a) => Color -> (Vector a, Vector a) -> Picture
 drawLineV col (vx, vy) = drawLine col $ zip (toList vx) (toList vy)
 
 drawFoil :: (Real a, Storable a, Show a) => Foil a -> Picture
-drawFoil foil = drawLineV white (pNodes foil)
+drawFoil foil = drawLineV white (fNodes foil)
 
 drawNormals :: Foil Double -> Picture
 drawNormals foil = pictures $ map (\(xy0, xy1) -> drawLine green [xy0, xy1]) (zip xy0s xy1s)
@@ -62,8 +62,8 @@ drawNormals foil = pictures $ map (\(xy0, xy1) -> drawLine green [xy0, xy1]) (zi
     xy0s = zip (toList xm) (toList ym)
     xy1s = zip (toList (xm + (LA.scale normalLengths xUnitNormal))) (toList (ym + (LA.scale normalLengths yUnitNormal)))
     
-    (xUnitNormal, yUnitNormal) = pUnitNormals foil
-    (xm, ym) = pMidpoints foil
+    (xUnitNormal, yUnitNormal) = fUnitNormals foil
+    (xm, ym) = fMidpoints foil
 
 colorFun :: (Fractional a, Real a) => a -> a -> a -> Color
 colorFun min' max' x' = makeColor (1-x) (1-x) x 1
@@ -77,8 +77,8 @@ drawForces flow = pictures $ map (\(xy0, xy1, cp) -> drawLine (colorFun minCp ma
     xy0s = zip (toList xm) (toList ym)
     xy1s = zip (toList (xm + xPressures)) (toList (ym + yPressures))
     (xPressures, yPressures) = (\(x,y) -> (LA.scale c x/lengths, LA.scale c y/lengths)) (fsForces flow)
-    lengths = pLengths $ fsFoil flow
-    (xm, ym) = pMidpoints $ fsFoil flow
+    lengths = fLengths $ fsFoil flow
+    (xm, ym) = fMidpoints $ fsFoil flow
     
     c = 0.1
     
@@ -88,7 +88,7 @@ drawForces flow = pictures $ map (\(xy0, xy1, cp) -> drawLine (colorFun minCp ma
 drawColoredFoil :: [Color] -> Foil Double -> Picture
 drawColoredFoil colors foil = pictures $ map (\(xy0, xy1, col) -> drawLine col [xy0, xy1]) (zip3 xy0s xy1s colors)
   where
-    xys = (\(x,y) -> zip (toList x) (toList y)) $ pNodes foil
+    xys = (\(x,y) -> zip (toList x) (toList y)) $ fNodes foil
     xy0s = tail xys
     xy1s = init xys
 
@@ -107,9 +107,9 @@ drawSolution flow = pictures [ drawText white (0.45, 0.8) 0.15 m0
     foil = fsFoil flow
     cps = fsCps flow
     
-    (xs, _) = pMidpoints foil
+    (xs, _) = fMidpoints foil
     
-    [m0,m1,m2,m3] = [ pName foil
+    [m0,m1,m2,m3] = [ fName foil
                     , printf ("alpha: %.6f") ((fsAlpha flow)*180/pi)
                     , printf ("Cl: %.6f") (fsCl flow)
                     , printf ("Cd: %.6f") (fsCd flow)

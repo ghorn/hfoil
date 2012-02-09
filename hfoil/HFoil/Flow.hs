@@ -37,7 +37,7 @@ solveFlow foil alpha = FlowSol { fsFoil = foil
                                }
   where
     -- surface velocities
-    (vs,qsGamma) = ( (mapVector (\q -> cos(q - alpha)) (pAngles foil)) + (mV <> qsGamma')
+    (vs,qsGamma) = ( (mapVector (\q -> cos(q - alpha)) (fAngles foil)) + (mV <> qsGamma')
                    , qsGamma'
                    )
       where
@@ -49,8 +49,8 @@ solveFlow foil alpha = FlowSol { fsFoil = foil
     cps = 1 - vs*vs
     
     -- forces and force coefficients
-    xForces = -cps*(fst $ pNormals foil)
-    yForces = -cps*(snd $ pNormals foil)
+    xForces = -cps*(fst $ fNormals foil)
+    yForces = -cps*(snd $ fNormals foil)
     xf = sumElements xForces
     yf = sumElements yForces
         
@@ -62,7 +62,7 @@ solveFlow foil alpha = FlowSol { fsFoil = foil
                  , (sumElements (ys*xForces)) / (sumElements xForces)
                  )
       where
-        (xs,ys) = pMidpoints foil
+        (xs,ys) = fMidpoints foil
 
 
 getB :: (Floating a, Storable a) => Foil a -> a -> Matrix a
@@ -70,8 +70,8 @@ getB panels alpha = asColumn $ join [ mapVector (\q -> sin $ q - alpha) angles
                                     , fromList [-cos((angles @> 0) - alpha) - cos((angles @> (n-1)) - alpha)]
                                     ]
   where
-    angles = pAngles panels
-    n = (dim (fst (pNodes panels)))-1    
+    angles = fAngles panels
+    n = (dim (fst (fNodes panels)))-1    
 
 -- make influence matrix A and also the matrix V where V*[sources; vortex] == tangential speeds
 getAV :: (Num (Vector a), RealFloat a, Container Vector a) =>
@@ -93,7 +93,7 @@ getAV panels = ( scale (1/(2*pi)) $ fromBlocks [[       mAij,   asColumn vAin]
     -- vortices kutta condition influence scalar ann
     ann = sumElements $ (getRow 0 mSL) + (getRow 0 mCB) + (getRow (n-1) mSL) + (getRow (n-1) mCB)
 
-    n = (dim (fst (pNodes panels)))-1
+    n = (dim (fst (fNodes panels)))-1
     
     getRow i mat = flatten $ subMatrix (i,0) (1,n) mat
 --  getCol j mat = flatten $ subMatrix (0,j) (n,1) mat
@@ -105,8 +105,8 @@ getAV panels = ( scale (1/(2*pi)) $ fromBlocks [[       mAij,   asColumn vAin]
       mCB' <- newMatrix 0 n n
       
       forM_ [0..n-1] $ \i -> forM_ [0..n-1] $ \j -> do
-        let qi = pAngles panels @> i
-            qj = pAngles panels @> j
+        let qi = fAngles panels @> i
+            qj = fAngles panels @> j
             s = sin (qi - qj)
             c = cos (qi - qj)
             l = lnrr panels (i,j)
@@ -127,8 +127,8 @@ lnrr panels (i,j)
   | i == j = 0
   | otherwise = log(r1/r0)
   where
-    (xms, yms) = pMidpoints panels
-    (xns, yns) = pNodes panels
+    (xms, yms) = fMidpoints panels
+    (xns, yns) = fNodes panels
     r1 = distance (xms @> i, yms @> i) ( xns @> (j+1), yns @> (j+1))
     r0 = distance (xms @> i, yms @> i) ( xns @>  j   , yns @>  j   )
     distance (x1,y1) (x0,y0) = sqrt $ dx*dx + dy*dy
@@ -147,5 +147,5 @@ beta panels (i,j)
     dxj  = (xms @> i) - (xns @>  j   )
     dyjp = (yms @> i) - (yns @> (j+1))
     dxjp = (xms @> i) - (xns @> (j+1))
-    (xms, yms) = pMidpoints panels
-    (xns, yns) = pNodes panels
+    (xms, yms) = fMidpoints panels
+    (xns, yns) = fNodes panels

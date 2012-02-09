@@ -26,26 +26,26 @@ instance Show (Elements a) where
   show (MultiElement x) = "{MultiElement: " ++ show (length x) ++ " elements, " ++
                           show (map length x) ++ " nodes == "++show (sum (map length x))++" total nodes}"
 
-data Foil a = Foil { pNodes :: (Vector a, Vector a)
-                   , pLengths :: Vector a
-                   , pAngles :: Vector a
-                   , pMidpoints :: (Vector a, Vector a)
-                   , pTangents :: (Vector a, Vector a)
-                   , pNormals :: (Vector a, Vector a)
-                   , pUnitNormals :: (Vector a, Vector a)
-                   , pName :: String
+data Foil a = Foil { fNodes :: (Vector a, Vector a)
+                   , fLengths :: Vector a
+                   , fAngles :: Vector a
+                   , fMidpoints :: (Vector a, Vector a)
+                   , fTangents :: (Vector a, Vector a)
+                   , fNormals :: (Vector a, Vector a)
+                   , fUnitNormals :: (Vector a, Vector a)
+                   , fName :: String
                    }
 
 toFoil :: (Num (Vector a), RealFloat a, Container Vector a) =>
           String -> [(a, a)] -> Foil a
-toFoil name xynodes = Foil { pNodes = (xNodes, yNodes)
-                           , pLengths = lengths
-                           , pAngles = zipVectorWith atan2 yTangents xTangents
-                           , pMidpoints = (xMids, yMids)
-                           , pTangents = (xTangents, yTangents)
-                           , pNormals = (xNormals, yNormals)
-                           , pUnitNormals = (xUnitNormals, yUnitNormals)
-                           , pName = name
+toFoil name xynodes = Foil { fNodes = (xNodes, yNodes)
+                           , fLengths = lengths
+                           , fAngles = zipVectorWith atan2 yTangents xTangents
+                           , fMidpoints = (xMids, yMids)
+                           , fTangents = (xTangents, yTangents)
+                           , fNormals = (xNormals, yNormals)
+                           , fUnitNormals = (xUnitNormals, yUnitNormals)
+                           , fName = name
                            }
   where
     n = (dim xNodes) - 1

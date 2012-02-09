@@ -42,7 +42,7 @@ main = do
 
 foilLoop :: ([Picture] -> IO ()) -> Foil Double -> InputT IO ()
 foilLoop draw foil = do
-  minput <- getInputLine $ "\ESC[1;32m\STXhfoil."++pName foil++">> \ESC[0m\STX"
+  minput <- getInputLine $ "\ESC[1;32m\STXhfoil."++fName foil++">> \ESC[0m\STX"
   case minput of
     Nothing -> return ()
     Just "quit" -> do outputStrLn "gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
