@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module HFoil.Foil( Foil(..)
+                 , Elements(..)
                  , toFoil
                  , panelizeNaca4
                  , loadFoil
