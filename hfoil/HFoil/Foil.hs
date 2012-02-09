@@ -2,51 +2,52 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module HFoil.Foil( Foil(..)
-                 , Elements(..)
-                 , toFoil
+                 , Element(..)
                  , panelizeNaca4
                  , loadFoil
                  , getUIUCFoil
                  ) where
 
 import System.Directory(doesFileExist)
-import Numeric.LinearAlgebra
+import Numeric.LinearAlgebra hiding (Element)
 import Data.Tuple.Utils(fst3)
 import Network.HTTP(simpleHTTP, getRequest, getResponseBody)
+import Foreign.Storable(Storable)
 
 import qualified HFoil.Naca4 as Naca4
 
-type Panels a = [(a,a)]
+data Foil a = Foil [Element a] String
 
-data Elements a = SingleElement (Panels a)
-                | MultiElement [Panels a]
+instance (Storable a) => Show (Foil a) where
+  show (Foil [el] name) = "{"++name++": " ++ show (1 + dim (fLengths el)) ++ " nodes}"
+  show (Foil els  name) = "{"++name++": " ++ show (length els) ++ " elements, " ++
+              show nodesPerEl ++ " nodes == "++show (sum nodesPerEl)++" total nodes}"
+    where
+      nodesPerEl = map (\x -> 1 + dim (fLengths x)) els
 
-instance Show (Elements a) where
-  show (SingleElement x) = "{SingleElement: " ++ show (length x) ++ " nodes}"
-  show (MultiElement x) = "{MultiElement: " ++ show (length x) ++ " elements, " ++
-                          show (map length x) ++ " nodes == "++show (sum (map length x))++" total nodes}"
+data Element a = Element { fNodes :: (Vector a, Vector a)
+                         , fLengths :: Vector a
+                         , fAngles :: Vector a
+                         , fMidpoints :: (Vector a, Vector a)
+                         , fTangents :: (Vector a, Vector a)
+                         , fNormals :: (Vector a, Vector a)
+                         , fUnitNormals :: (Vector a, Vector a)
+                         , fInits :: (Vector a, Vector a)
+                         , fTails :: (Vector a, Vector a)
+                         }
 
-data Foil a = Foil { fNodes :: (Vector a, Vector a)
-                   , fLengths :: Vector a
-                   , fAngles :: Vector a
-                   , fMidpoints :: (Vector a, Vector a)
-                   , fTangents :: (Vector a, Vector a)
-                   , fNormals :: (Vector a, Vector a)
-                   , fUnitNormals :: (Vector a, Vector a)
-                   , fName :: String
-                   }
-
-toFoil :: (Num (Vector a), RealFloat a, Container Vector a) =>
-          String -> [(a, a)] -> Foil a
-toFoil name xynodes = Foil { fNodes = (xNodes, yNodes)
-                           , fLengths = lengths
-                           , fAngles = zipVectorWith atan2 yTangents xTangents
-                           , fMidpoints = (xMids, yMids)
-                           , fTangents = (xTangents, yTangents)
-                           , fNormals = (xNormals, yNormals)
-                           , fUnitNormals = (xUnitNormals, yUnitNormals)
-                           , fName = name
-                           }
+toElement :: (Num (Vector a), RealFloat a, Container Vector a) =>
+             [(a, a)] -> Element a
+toElement xynodes = Element { fNodes = (xNodes, yNodes)
+                            , fLengths = lengths
+                            , fAngles = zipVectorWith atan2 yTangents xTangents
+                            , fMidpoints = (xMids, yMids)
+                            , fTangents = (xTangents, yTangents)
+                            , fNormals = (xNormals, yNormals)
+                            , fUnitNormals = (xUnitNormals, yUnitNormals)
+                            , fInits = (xInits, yInits)
+                            , fTails = (xTails, yTails)
+                            }
   where
     n = (dim xNodes) - 1
     (xNodes, yNodes) = (\(xs,ys) -> (fromList xs, fromList ys)) $ unzip xynodes
@@ -59,20 +60,20 @@ toFoil name xynodes = Foil { fNodes = (xNodes, yNodes)
     (xUnitNormals, yUnitNormals) = (xNormals/lengths, yNormals/lengths)
 
 
-getUIUCFoil :: Read a => String -> IO (Elements a)
+getUIUCFoil :: (Num (Vector a), Read a, RealFloat a, Container Vector a) =>
+               String -> IO (Foil a)
 getUIUCFoil name = do
   let file = "http://www.ae.illinois.edu/m-selig/ads/coord/" ++ name ++ ".dat"
   dl <- simpleHTTP (getRequest file) >>= getResponseBody
-  return (parseRawFoil dl)
+  return (parseRawFoil dl name)
 
-parseRawFoil :: Read a => String -> Elements a
+parseRawFoil :: (Num (Vector a), Read a, RealFloat a, Container Vector a) =>
+                String -> String -> Foil a
 parseRawFoil raw
   -- bad data
   | any (\x -> 2 /= length x) (concat groupsOfLines) = error $ "parseRawFoil fail, bad foil data?" ++ show groupsOfLines
   -- single element
-  | length elements == 1 = SingleElement (head elements)
-  -- multi element
-  | length elements > 1 = MultiElement elements
+  | length elements > 0 = Foil (map toElement elements)
   | otherwise =  error "parseRawFoil fail, bad foil date?"
   where
     elements = map (map (\(x:y:[]) -> (read x, read y))) groupsOfLines
@@ -87,26 +88,26 @@ parseRawFoil raw
           where
             (fst', snd') = break (\x -> 0 == length x) xs
   
-loadFoil :: FilePath -> IO (Maybe (Elements Double))
+loadFoil :: FilePath -> IO (Maybe (Foil Double))
 loadFoil filename = do
   exists <- doesFileExist filename
   if exists
     then do rawData <- readFile filename
-            return (Just (parseRawFoil rawData))
+            return (Just (parseRawFoil rawData filename)) -- use filename as name
     else do putStrLn $ "ERROR: file \"" ++ filename ++ "\" couldn't be found"
             return Nothing
 
 
 panelizeNaca4 :: (Enum a, Floating (Vector a), RealFloat a, Field a) =>
                 Naca4.Naca4 a -> Int -> Foil a
-panelizeNaca4 foil nPanels = toFoil (Naca4.naca4_name foil) $ [(1,0)]++reverse lower++[(0,0)]++upper++[(1,0)]
+panelizeNaca4 foil nPanels = Foil [toElement $ [(1,0)]++reverse lower++[(0,0)]++upper++[(1,0)]]
+                             (Naca4.naca4_name foil)
   where
     (upper, lower) = unzip $ map (Naca4.coords foil) xcs
     xcs = toList $ fst3 $ bunchPanels (Naca4.yt foil) (Naca4.dyt foil) xcs0 0 0
     xcs0 = fromList $ init $ tail $ toList $ linspace nXcs (0,1)
     nXcs = (nPanels + (nPanels `mod` 2)) `div` 2 + 1
     
-
 bunchPanels :: (Enum a, Floating (Vector a), Floating a, Ord a, Field a) =>
                (a -> a) -> (a -> a) -> Vector a -> Int -> Int -> (Vector a, Int, Int)
 bunchPanels yt dyt xcs nIter nBadSteps 

@@ -10,8 +10,8 @@ module HFoil.Drawing( drawLine
                     , drawForces
                     ) where
 
-import Graphics.Gloss hiding(Vector)
-import Numeric.LinearAlgebra hiding(scale,i)
+import Graphics.Gloss hiding(Vector,dim)
+import Numeric.LinearAlgebra hiding(Element, scale,i)
 import Foreign.Storable(Storable)
 import qualified Numeric.LinearAlgebra as LA
 import Text.Printf
@@ -54,16 +54,19 @@ drawLineV :: (Real a, Storable a) => Color -> (Vector a, Vector a) -> Picture
 drawLineV col (vx, vy) = drawLine col $ zip (toList vx) (toList vy)
 
 drawFoil :: (Real a, Storable a, Show a) => Foil a -> Picture
-drawFoil foil = drawLineV white (fNodes foil)
+drawFoil (Foil elements _) = pictures $ map drawElement elements
+
+drawElement :: (Real a, Storable a) => Element a -> Picture
+drawElement element = drawLineV white (fNodes element)
 
 drawNormals :: Foil Double -> Picture
-drawNormals foil = pictures $ map (\(xy0, xy1) -> drawLine green [xy0, xy1]) (zip xy0s xy1s)
+drawNormals (Foil elements _) = pictures $ map (\(xy0, xy1) -> drawLine green [xy0, xy1]) (zip xy0s xy1s)
   where
     xy0s = zip (toList xm) (toList ym)
     xy1s = zip (toList (xm + (LA.scale normalLengths xUnitNormal))) (toList (ym + (LA.scale normalLengths yUnitNormal)))
     
-    (xUnitNormal, yUnitNormal) = fUnitNormals foil
-    (xm, ym) = fMidpoints foil
+    (xUnitNormal, yUnitNormal) = (\(x,y) -> (join x, join y)) $ unzip $ map fUnitNormals elements
+    (xm, ym) = (\(x,y) -> (join x, join y)) $ unzip $ map fMidpoints elements
 
 colorFun :: (Fractional a, Real a) => a -> a -> a -> Color
 colorFun min' max' x' = makeColor (1-x) (1-x) x 1
@@ -77,8 +80,8 @@ drawForces flow = pictures $ map (\(xy0, xy1, cp) -> drawLine (colorFun minCp ma
     xy0s = zip (toList xm) (toList ym)
     xy1s = zip (toList (xm + xPressures)) (toList (ym + yPressures))
     (xPressures, yPressures) = (\(x,y) -> (LA.scale c x/lengths, LA.scale c y/lengths)) (solForces flow)
-    lengths = fLengths $ solFoil flow
-    (xm, ym) = fMidpoints $ solFoil flow
+    lengths = join $ map fLengths $ (\(Foil x _) -> x) $ solFoil flow
+    (xm, ym) = (\(x,y) -> (join x, join y)) $ unzip $ map fMidpoints $ (\(Foil x _) -> x) $ solFoil flow
     
     c = 0.1
     
@@ -86,30 +89,45 @@ drawForces flow = pictures $ map (\(xy0, xy1, cp) -> drawLine (colorFun minCp ma
     minCp = minElement (solCps flow)
 
 drawColoredFoil :: [Color] -> Foil Double -> Picture
-drawColoredFoil colors foil = pictures $ map (\(xy0, xy1, col) -> drawLine col [xy0, xy1]) (zip3 xy0s xy1s colors)
+drawColoredFoil colors foil@(Foil elements _) = pictures $ zipWith drawColoredElement colors' elements
   where
-    xys = (\(x,y) -> zip (toList x) (toList y)) $ fNodes foil
+    colors' = groupSomethingByFoil foil colors
+
+drawColoredElement :: [Color] -> Element Double -> Picture
+drawColoredElement colors element = pictures $ map (\(xy0, xy1, col) -> drawLine col [xy0, xy1]) (zip3 xy0s xy1s colors)
+  where
+    xys = (\(x,y) -> zip (toList x) (toList y)) $ fNodes element
     xy0s = tail xys
     xy1s = init xys
 
-drawSolution :: FlowSol Double -> Picture
-drawSolution flow = pictures [ drawText white (0.45, 0.8) 0.15 m0
-                             , drawText white (0.45, 0.65) 0.15 m1
-                             , drawText white (0.45, 0.5) 0.15 m2
-                             , drawText white (0.45, 0.35) 0.15 m3
-                             , drawForces flow
-                             , drawColoredFoil colors foil
-                             , drawLineV red (xs, LA.scale cpScale cps) -- cp graph
-                             , drawCircle white (fst $ solCenterPressure flow, snd $ solCenterPressure flow) 0.006
-                             , drawCircle white (fst $ solCenterPressure flow, 0) 0.006
-                             ]
+groupSomethingByFoil :: Storable a => Foil a -> [b] -> [[b]]
+groupSomethingByFoil (Foil elements _) somethings = f somethings (map (dim . fAngles) elements)
   where
-    foil = solFoil flow
+    f xs (n:ns) = (take n xs):(f (drop n xs) ns)
+    f [] []= []
+    f _ _ = error "uh oh (groupSomethingByFoil)"
+
+drawSolution :: FlowSol Double -> Picture
+drawSolution flow = pictures $ [ drawText white (0.45, 0.8) 0.15 m0
+                               , drawText white (0.45, 0.65) 0.15 m1
+                               , drawText white (0.45, 0.5) 0.15 m2
+                               , drawText white (0.45, 0.35) 0.15 m3
+                               , drawForces flow
+                               , drawColoredFoil colors foil
+                               , drawCircle white (fst $ solCenterPressure flow, snd $ solCenterPressure flow) 0.006
+                               , drawCircle white (fst $ solCenterPressure flow, 0) 0.006
+                               ] ++ zipWith (\x y -> drawLineV red (x, y)) xs
+                                    (takesV (map dim xs) (LA.scale cpScale cps)) -- cp graph
+  where
+    foil@(Foil elements name) = solFoil flow
     cps = solCps flow
     
-    (xs, _) = fMidpoints foil
+    xs = map (fst . fMidpoints) elements
     
-    [m0,m1,m2,m3] = [ fName foil
+--                             ] ++ zipWith (\x y -> drawLine red (toList x, y)) xs (groupSomethingByFoil foil (toList (LA.scale cpScale cps))) -- cp graph
+--                             ++
+
+    [m0,m1,m2,m3] = [ name
                     , printf ("alpha: %.6f") ((solAlpha flow)*180/pi)
                     , printf ("Cl: %.6f") (solCl flow)
                     , printf ("Cd: %.6f") (solCd flow)
