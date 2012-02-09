@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module HFoil.Repl( run
-                 ) where
+module Numeric.HFoil.Repl( run
+                         ) where
 
 import System.Console.Haskeline hiding(display)
 import Graphics.Gloss.Interface.IO.Animate hiding(scale, Vector)
@@ -9,10 +9,10 @@ import Control.Monad.IO.Class
 import Control.Concurrent(forkIO)
 import Control.Concurrent.MVar(newMVar, readMVar, swapMVar)
 
-import HFoil.Foil
-import HFoil.Naca4
-import HFoil.Drawing
-import HFoil.Flow
+import Numeric.HFoil.Foil
+import Numeric.HFoil.Naca4
+import Numeric.HFoil.Drawing
+import Numeric.HFoil.Flow
 
 ---- configuration
 nPanels :: Int

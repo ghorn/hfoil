@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module HFoil.Flow( FlowSol(..)
-                 , solveFlow
-                 ) where
+module Numeric.HFoil.Flow( FlowSol(..)
+                         , solveFlow
+                         ) where
 
 import Data.Packed.ST(newMatrix, writeMatrix, freezeMatrix)
 import Control.Monad(forM_)
@@ -11,7 +11,7 @@ import Control.Monad.ST(runST)
 import Numeric.LinearAlgebra hiding(i)
 import Foreign.Storable
 
-import HFoil.Foil
+import Numeric.HFoil.Foil
 
 data FlowSol a = FlowSol { solFoil :: Foil a
                          , solVs :: Vector a

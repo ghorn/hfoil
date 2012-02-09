@@ -1,5 +1,5 @@
 Name:                hfoil
-Version:             0.1
+Version:             0.1.1
 Stability:           Experimental
 Synopsis:            Hess-Smith panel code for inviscid 2-d airfoil analysis
 License:             BSD3
@@ -7,7 +7,7 @@ License-file:        LICENSE
 Author:              Greg Horn
 Maintainer:          gregmainland@gmail.com
 Copyright:           Greg Horn, 2012
-Category:            Numeric
+Category:            Numerical, Science
 Build-type:          Simple
 Cabal-version:       >=1.6
 Description: {
@@ -40,12 +40,13 @@ Flag repl
      Default: True
 
 Library
-  Exposed-modules:     HFoil.Naca4
-                       HFoil.Foil
-                       HFoil.Drawing
-                       HFoil.Flow
-                       HFoil.Repl
---  Other-modules:       
+  Exposed-modules:     Numeric.HFoil
+                       Numeric.HFoil.Naca4
+                       Numeric.HFoil.Foil
+                       Numeric.HFoil.Drawing
+                       Numeric.HFoil.Flow
+                       Numeric.HFoil.Repl
+--  Other-modules:
 
   Build-depends:       gloss >= 1.7 && <= 1.8,
                        base >= 4 && < 5,
@@ -77,4 +78,4 @@ Executable hfoil
 source-repository head
   type:     git
   location: git://github.com/ghorn/hfoil.git
-  tag:      0.1
+  tag:      0.1.1

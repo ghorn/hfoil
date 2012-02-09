@@ -1,14 +1,14 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module HFoil.Drawing( drawLine
-                    , drawLineV
-                    , drawSolution
-                    , drawFoil
-                    , drawOnce
-                    , drawNormals
-                    , drawForces
-                    ) where
+module Numeric.HFoil.Drawing( drawLine
+                            , drawLineV
+                            , drawSolution
+                            , drawFoil
+                            , drawOnce
+                            , drawNormals
+                            , drawForces
+                            ) where
 
 import Graphics.Gloss hiding(Vector,dim)
 import Numeric.LinearAlgebra hiding(Element, scale,i)
@@ -16,8 +16,8 @@ import Foreign.Storable(Storable)
 import qualified Numeric.LinearAlgebra as LA
 import Text.Printf
 
-import HFoil.Flow
-import HFoil.Foil
+import Numeric.HFoil.Flow
+import Numeric.HFoil.Foil
 
 xSize, ySize :: Int
 xSize = 800

@@ -1,12 +1,12 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module HFoil.Foil( Foil(..)
-                 , Element(..)
-                 , panelizeNaca4
-                 , loadFoil
-                 , getUIUCFoil
-                 ) where
+module Numeric.HFoil.Foil( Foil(..)
+                         , Element(..)
+                         , panelizeNaca4
+                         , loadFoil
+                         , getUIUCFoil
+                         ) where
 
 import System.Directory(doesFileExist)
 import Numeric.LinearAlgebra hiding (Element)
@@ -14,7 +14,7 @@ import Data.Tuple.Utils(fst3)
 import Network.HTTP(simpleHTTP, getRequest, getResponseBody)
 import Foreign.Storable(Storable)
 
-import qualified HFoil.Naca4 as Naca4
+import qualified Numeric.HFoil.Naca4 as Naca4
 
 data Foil a = Foil [Element a] String
 
