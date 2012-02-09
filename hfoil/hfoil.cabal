@@ -8,7 +8,7 @@ Maintainer:          gregmainland@gmail.com
 Copyright:           Greg Horn, 2012
 Category:            Numeric
 Build-type:          Simple
-Cabal-version:       >=1.2
+Cabal-version:       >=1.6
 Description: {
 Library and command line REPL with plotting to do simple inviscid hess-smith panel code.
 .
@@ -72,3 +72,8 @@ Executable hfoil
 
   if os(OSX)
       extra-lib-dirs: /usr/lib
+
+source-repository head
+  type:     git
+  location: git://github.com/ghorn/hfoil.git
+  tag:      0.1
