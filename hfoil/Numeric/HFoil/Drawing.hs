@@ -108,11 +108,8 @@ groupSomethingByFoil (Foil elements _) somethings = f somethings (map (dim . fAn
     f _ _ = error "uh oh (groupSomethingByFoil)"
 
 drawSolution :: FlowSol Double -> Picture
-drawSolution flow = pictures $ [ drawText white (0.45, 0.8) 0.15 m0
-                               , drawText white (0.45, 0.65) 0.15 m1
-                               , drawText white (0.45, 0.5) 0.15 m2
-                               , drawText white (0.45, 0.35) 0.15 m3
-                               , drawForces flow
+drawSolution flow = pictures $ onscreenText ++
+                               [ drawForces flow
                                , drawColoredFoil colors foil
                                , drawCircle white (fst $ solCenterPressure flow, snd $ solCenterPressure flow) 0.006
                                , drawCircle white (fst $ solCenterPressure flow, 0) 0.006
@@ -124,15 +121,14 @@ drawSolution flow = pictures $ [ drawText white (0.45, 0.8) 0.15 m0
     
     xs = map (fst . fMidpoints) elements
     
---                             ] ++ zipWith (\x y -> drawLine red (toList x, y)) xs (groupSomethingByFoil foil (toList (LA.scale cpScale cps))) -- cp graph
---                             ++
+    onscreenText = zipWith (\m y -> drawText white (0.45,y) 0.15 m) msgs
+                   $ take (length msgs) [0.8,0.65..]
+    msgs = [ name
+           , printf ("alpha: %.6f") ((solAlpha flow)*180/pi)
+           , printf ("Cl: %.6f") (solCl flow)
+           , printf ("Cd: %.6f") (solCd flow)
+           ]
 
-    [m0,m1,m2,m3] = [ name
-                    , printf ("alpha: %.6f") ((solAlpha flow)*180/pi)
-                    , printf ("Cl: %.6f") (solCl flow)
-                    , printf ("Cd: %.6f") (solCd flow)
-                    ]
-        
     colors = map (colorFun (minElement cps) (maxElement cps)) (toList cps)
 
 
