@@ -21,13 +21,11 @@ Features include:
 .
 * Broken UIUC database integration (type \"uiuc [foilname]\")
 .
-* Shameless xfoil ripoff for the relp/plotting
+* Shameless xfoil ripoff for relp/plotting interface
 .
-* Only works with development version of Gloss that's not yet on Hackage
+* Only works with development version of Gloss that's not on Hackage yet
 .
 * Haskeline interface with tab-completion
-.
-* And nothing else.
 .
 .
 To get started, do cabal install or whatever, then run the \"hfoil\" binary.
@@ -78,4 +76,4 @@ Executable hfoil
 source-repository head
   type:     git
   location: git://github.com/ghorn/hfoil.git
-  tag:      0.1.1
+  tag:      0.1.2
