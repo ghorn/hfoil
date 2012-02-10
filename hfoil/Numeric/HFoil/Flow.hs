@@ -135,6 +135,18 @@ getAVb (mSL,mCL,mSB,mCB) angles kuttaIndices alpha =
     getSubRow i (j0,jf) mat = flatten $ subMatrix (i,j0) (1,jf-j0+1) mat
 
 
+{- 
+calcuate 4 matrices which will be useful
+
+mSL(i,j) = sin(qi - ij) * ln(rij+1/rij)
+mCL(i,j) = cos(qi - ij) * ln(rij+1/rij)
+mSB(i,j) = sin(qi - ij) * beta(i,j)
+mCB(i,j) = cos(qi - ij) * beta(i,j)
+
+where for i==j: ln(r/r) = 0
+                beta    = pi
+are explicitly set
+-}
 setupGeometries :: (RealFloat t, Storable t) =>
                    Vector t
                    -> (Vector t, Vector t)
