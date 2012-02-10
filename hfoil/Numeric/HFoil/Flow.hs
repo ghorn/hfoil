@@ -19,6 +19,7 @@ data FlowSol a = FlowSol { solFoil :: Foil a
                          , solVorticities :: [a]
                          , solAlpha :: a
                          , solForces :: (Vector a, Vector a)
+                         , solForce :: (a,a)
                          , solCl :: a
                          , solCd :: a
                          , solCm :: a -- moment about (0,0.25)
@@ -33,6 +34,7 @@ solveFlow foil@(Foil elements _) alpha =
           , solVorticities = vorticities
           , solAlpha = alpha
           , solForces = (xForces, yForces)
+          , solForce = (xf,yf)
           , solCl = cl
           , solCd = cd
           , solCm = cm
