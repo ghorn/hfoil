@@ -22,10 +22,16 @@ xSize, ySize :: Int
 xSize = 800
 ySize = 500
 
-data Config = Config { confForces :: Bool }
+data Config = Config { confForces :: Bool
+                     , confKuttas :: Bool
+                     , confNormals :: Bool
+                     }
 
 defaultConfig :: Config
-defaultConfig = Config { confForces = False }
+defaultConfig = Config { confForces = False
+                       , confKuttas = False
+                       , confNormals = False
+                       }
 
 run :: IO ()
 run = do
@@ -57,11 +63,29 @@ foilLoop draw conf foil@(Foil _ name) = do
     Just ('a':'l':'f':'a':' ':[]) -> do outputStrLn $ "unrecognized command"
                                         foilLoop draw conf foil
     Just ('a':'l':'f':'a':' ':alphaDeg) -> do let flow = solveFlow foil (pi/180*(read alphaDeg))
-                                              liftIO $ draw $ case (confForces conf) of
-                                                True -> (drawForces flow):[drawSolution flow]
-                                                False -> [drawSolution flow]
+                                                  forces = case (confForces conf) of
+                                                    True -> [drawForces flow]
+                                                    False -> []
+                                                  kuttas = case (confKuttas conf) of
+                                                    True -> [drawKuttas flow]
+                                                    False -> []
+                                                  normals = case (confNormals conf) of
+                                                    True -> [drawNormals (solFoil flow)]
+                                                    False -> []
+                                              liftIO $ draw $ forces++kuttas++normals++[drawSolution flow]
                                               foilLoop draw conf foil
-    Just ('f':'o':'r':'c':'e':'s':[]) -> do foilLoop draw (conf {confForces = not (confForces conf)}) foil
+    Just ('f':'o':'r':'c':'e':'s':[]) -> do
+      let newConf = conf {confForces = not (confForces conf)}
+      outputStrLn $ "force drawing set to "++ show (not (confForces conf))
+      foilLoop draw newConf foil
+    Just ('k':'u':'t':'t':'a':'s':[]) -> do 
+      let newConf = conf {confKuttas = not (confKuttas conf)}
+      outputStrLn $ "kutta drawing set to "++ show (not (confKuttas conf))
+      foilLoop draw newConf foil
+    Just ('n':'o':'r':'m':'a':'l':'s':[]) -> do
+      let newConf = conf {confNormals = not (confNormals conf)}
+      outputStrLn $ "normals drawing set to "++ show (not (confNormals conf))
+      foilLoop draw newConf foil
     Just "" -> return ()
     Just input -> do outputStrLn $ "unrecognized command \"" ++ input ++ "\""
                      foilLoop draw conf foil

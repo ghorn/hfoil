@@ -8,6 +8,7 @@ module Numeric.HFoil.Drawing( drawLine
                             , drawOnce
                             , drawNormals
                             , drawForces
+                            , drawKuttas
                             ) where
 
 import Graphics.Gloss hiding(Vector,dim)
@@ -72,6 +73,15 @@ colorFun :: (Fractional a, Real a) => a -> a -> a -> Color
 colorFun min' max' x' = makeColor (1-x) (1-x) x 1
   where
     x = realToFrac $ (x' - min')/(max'-min')
+
+drawKuttas :: (Real a, Storable a) => FlowSol a -> Picture
+drawKuttas flow = pictures $ concatMap (\(k0,k1) -> [circ k0, circ k1]) kis
+  where
+    kis = solKuttaIndices flow
+    (xs',ys') = unzip $ map fMidpoints $ (\(Foil els _) -> els) (solFoil flow)
+    xs = join xs'
+    ys = join ys'
+    circ k = drawCircle yellow (xs @> k, ys @> k) 0.006
 
 drawForces :: FlowSol Double -> Picture
 drawForces flow = pictures $ map (\(xy0, xy1, cp) -> drawLine (colorFun minCp maxCp cp) [xy0, xy1])

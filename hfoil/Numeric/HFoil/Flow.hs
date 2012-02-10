@@ -24,6 +24,7 @@ data FlowSol a = FlowSol { solFoil :: Foil a
                          , solCd :: a
                          , solCm :: a -- moment about (0,0.25)
                          , solCenterPressure :: (a,a)
+                         , solKuttaIndices :: [(Int,Int)]
                          }
 
 solveFlow :: (Num (Vector a), RealFloat a, Field a) => Foil a -> a -> FlowSol a
@@ -39,6 +40,7 @@ solveFlow foil@(Foil elements _) alpha =
           , solCd = cd
           , solCm = cm
           , solCenterPressure = (xCp, yCp)
+          , solKuttaIndices = kuttaIndices
           }
   where
     -- surface velocities
