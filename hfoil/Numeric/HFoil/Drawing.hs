@@ -109,8 +109,7 @@ groupSomethingByFoil (Foil elements _) somethings = f somethings (map (dim . fAn
 
 drawSolution :: FlowSol Double -> Picture
 drawSolution flow = pictures $ onscreenText ++
-                               [ drawForces flow
-                               , drawColoredFoil colors foil
+                               [ drawColoredFoil colors foil
                                , drawCircle white (fst $ solCenterPressure flow, snd $ solCenterPressure flow) 0.006
                                , drawCircle white (fst $ solCenterPressure flow, 0) 0.006
                                , drawCircle green (0.25,0::Double) 0.006
@@ -125,10 +124,10 @@ drawSolution flow = pictures $ onscreenText ++
     onscreenText = zipWith (\m y -> drawText white (0.45,y) 0.15 m) msgs
                    $ take (length msgs) [0.8,0.65..]
     msgs = [ name
-           , printf ("alpha: %.6f") ((solAlpha flow)*180/pi)
+           , printf ("alpha: %.6f deg") ((solAlpha flow)*180/pi)
            , printf ("Cl: %.6f") (solCl flow)
            , printf ("Cd: %.6f") (solCd flow)
-           , printf ("Cm: %.6f (c/4,0)") (solCm flow)
+           , printf ("Cm: %.6f (c/4, 0)") (solCm flow)
            ]
 
     colors = map (colorFun (minElement cps) (maxElement cps)) (toList cps)

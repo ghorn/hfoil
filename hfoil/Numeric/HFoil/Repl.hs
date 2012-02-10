@@ -22,6 +22,11 @@ xSize, ySize :: Int
 xSize = 800
 ySize = 500
 
+data Config = Config { confForces :: Bool }
+
+defaultConfig :: Config
+defaultConfig = Config { confForces = False }
+
 run :: IO ()
 run = do
   let naca0 = "2412"
@@ -31,7 +36,8 @@ run = do
   
   putStrLn "Welcome to hfoil\n"
   
-  _ <- forkIO $ runInputT defaultSettings (topLoop (\pics -> swapMVar mpics pics >>= (\_ -> return ())))
+  _ <- forkIO $ runInputT defaultSettings
+       $ topLoop (\pics -> swapMVar mpics pics >>= (\_ -> return ())) defaultConfig
 
   animateIO
     (InWindow
@@ -41,52 +47,55 @@ run = do
     black                -- background color
     (\_ -> readMVar mpics >>= return . pictures) -- draw function
 
-foilLoop :: ([Picture] -> IO ()) -> Foil Double -> InputT IO ()
-foilLoop draw foil@(Foil _ name) = do
+foilLoop :: ([Picture] -> IO ()) -> Config -> Foil Double -> InputT IO ()
+foilLoop draw conf foil@(Foil _ name) = do
   minput <- getInputLine $ "\ESC[1;32m\STXhfoil."++name++">> \ESC[0m\STX"
   case minput of
     Nothing -> return ()
     Just "quit" -> do outputStrLn "gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
-                      foilLoop draw foil
+                      foilLoop draw conf foil
     Just ('a':'l':'f':'a':' ':[]) -> do outputStrLn $ "unrecognized command"
-                                        foilLoop draw foil
+                                        foilLoop draw conf foil
     Just ('a':'l':'f':'a':' ':alphaDeg) -> do let flow = solveFlow foil (pi/180*(read alphaDeg))
-                                              liftIO $ draw $ [drawSolution flow]
-                                              foilLoop draw foil
+                                              liftIO $ draw $ case (confForces conf) of
+                                                True -> (drawForces flow):[drawSolution flow]
+                                                False -> [drawSolution flow]
+                                              foilLoop draw conf foil
+    Just ('f':'o':'r':'c':'e':'s':[]) -> do foilLoop draw (conf {confForces = not (confForces conf)}) foil
     Just "" -> return ()
     Just input -> do outputStrLn $ "unrecognized command \"" ++ input ++ "\""
-                     foilLoop draw foil
+                     foilLoop draw conf foil
 
-topLoop :: ([Picture] -> IO ()) -> InputT IO ()
-topLoop draw = do
+topLoop :: ([Picture] -> IO ()) -> Config -> InputT IO ()
+topLoop draw conf = do
   minput <- getInputLine "\ESC[1;32m\STXhfoil>> \ESC[0m\STX"
   case minput of
     Nothing -> return ()
     Just "quit" -> do outputStrLn "gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
-                      topLoop draw
-    Just ('n':'a':'c':'a':' ':spec) -> do parseNaca draw spec
-                                          topLoop draw
+                      topLoop draw conf
+    Just ('n':'a':'c':'a':' ':spec) -> do parseNaca draw conf spec
+                                          topLoop draw conf
     Just ('l':'o':'a':'d':' ':name) -> do
       foil <- liftIO (loadFoil name)
       case foil of Left errMsg -> outputStrLn errMsg
                    Right foil' -> do liftIO $ draw [drawFoil foil', drawNormals foil']
-                                     foilLoop draw foil'
-      topLoop draw
+                                     foilLoop draw conf foil'
+      topLoop draw conf
     Just ('u':'i':'u':'c':' ':name) -> do
       efoil <- liftIO (getUIUCFoil name)
       case efoil of Left errMsg -> outputStrLn errMsg
                     Right foil -> do liftIO $ draw [drawFoil foil, drawNormals foil]
-                                     foilLoop draw foil
-      topLoop draw
+                                     foilLoop draw conf foil
+      topLoop draw conf
 
-    Just "" -> topLoop draw
+    Just "" -> topLoop draw conf
     Just input -> do outputStrLn $ "unrecognized command \"" ++ input ++ "\""
-                     topLoop draw
+                     topLoop draw conf
 
-parseNaca :: ([Picture] -> IO ()) -> String -> InputT IO ()
-parseNaca draw str 
+parseNaca :: ([Picture] -> IO ()) -> Config -> String -> InputT IO ()
+parseNaca draw conf str 
   | length str == 4 = do let foil = panelizeNaca4 (naca4 str :: Naca4 Double) nPanels
                          liftIO $ draw [drawFoil foil, drawNormals foil]
-                         foilLoop draw foil
+                         foilLoop draw conf foil
   | otherwise = do outputStrLn $ "Not 4 digits"
                    return ()
