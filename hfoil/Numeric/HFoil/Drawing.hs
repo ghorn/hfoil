@@ -113,6 +113,7 @@ drawSolution flow = pictures $ onscreenText ++
                                , drawColoredFoil colors foil
                                , drawCircle white (fst $ solCenterPressure flow, snd $ solCenterPressure flow) 0.006
                                , drawCircle white (fst $ solCenterPressure flow, 0) 0.006
+                               , drawCircle green (0.25,0::Double) 0.006
                                ] ++ zipWith (\x y -> drawLineV red (x, y)) xs
                                     (takesV (map dim xs) (LA.scale cpScale cps)) -- cp graph
   where
@@ -127,6 +128,7 @@ drawSolution flow = pictures $ onscreenText ++
            , printf ("alpha: %.6f") ((solAlpha flow)*180/pi)
            , printf ("Cl: %.6f") (solCl flow)
            , printf ("Cd: %.6f") (solCd flow)
+           , printf ("Cm: %.6f (c/4,0)") (solCm flow)
            ]
 
     colors = map (colorFun (minElement cps) (maxElement cps)) (toList cps)

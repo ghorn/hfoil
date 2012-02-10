@@ -21,6 +21,7 @@ data FlowSol a = FlowSol { solFoil :: Foil a
                          , solForces :: (Vector a, Vector a)
                          , solCl :: a
                          , solCd :: a
+                         , solCm :: a -- moment about (0,0.25)
                          , solCenterPressure :: (a,a)
                          }
 
@@ -34,6 +35,7 @@ solveFlow foil@(Foil elements _) alpha =
           , solForces = (xForces, yForces)
           , solCl = cl
           , solCd = cd
+          , solCm = cm
           , solCenterPressure = (xCp, yCp)
           }
   where
@@ -56,13 +58,17 @@ solveFlow foil@(Foil elements _) alpha =
         
     cd =  xf*(cos alpha) + yf*(sin alpha)
     cl = -xf*(sin alpha) + yf*(cos alpha)
-
+    
+    -- midpoints
+    (xs,ys) = (\(x,y) -> (join x, join y)) $ unzip $ map fMidpoints elements
+    
     -- centers of pressure
     (xCp, yCp) = ( (sumElements (xs*yForces)) / (sumElements yForces)
                  , (sumElements (ys*xForces)) / (sumElements xForces)
                  )
-      where
-        (xs,ys) = (\(x,y) -> (join x, join y)) $ unzip $ map fMidpoints elements
+
+    -- moment about cp and quarter chord
+    cm = sumElements $  (mapVector (\z -> z - 0.25) xs)*yForces - ys*xForces
 
     kuttaIndices = ki 0 (map dim angles')
       where
