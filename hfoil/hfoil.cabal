@@ -70,9 +70,6 @@ Executable hfoil
   Ghc-Options:         -O2 -threaded -Wall
   GHC-Prof-Options:    -auto-all -caf-all -rtsopts
 
-  if os(OSX)
-      extra-lib-dirs: /usr/lib
-
 source-repository head
   type:     git
   location: git://github.com/ghorn/hfoil.git
