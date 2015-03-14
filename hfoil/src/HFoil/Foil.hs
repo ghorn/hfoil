@@ -40,18 +40,19 @@ data Element a = Element { fNodes :: (Vector a, Vector a)
                          , fTails :: (Vector a, Vector a)
                          }
 
-toElement :: (Num (Vector a), RealFloat a, Container Vector a) =>
-             [(a, a)] -> Element a
-toElement xynodes = Element { fNodes = (xNodes, yNodes)
-                            , fLengths = lengths
-                            , fAngles = zipVectorWith atan2 yTangents xTangents
-                            , fMidpoints = (xMids, yMids)
-                            , fTangents = (xTangents, yTangents)
-                            , fNormals = (xNormals, yNormals)
-                            , fUnitNormals = (xUnitNormals, yUnitNormals)
-                            , fInits = (xInits, yInits)
-                            , fTails = (xTails, yTails)
-                            }
+toElement :: (Num (Vector a), RealFloat a, Container Vector a)
+             => [(a, a)] -> Element a
+toElement xynodes =
+  Element { fNodes = (xNodes, yNodes)
+          , fLengths = lengths
+          , fAngles = zipVectorWith atan2 yTangents xTangents
+          , fMidpoints = (xMids, yMids)
+          , fTangents = (xTangents, yTangents)
+          , fNormals = (xNormals, yNormals)
+          , fUnitNormals = (xUnitNormals, yUnitNormals)
+          , fInits = (xInits, yInits)
+          , fTails = (xTails, yTails)
+          }
   where
     n = (dim xNodes) - 1
     (xNodes, yNodes) = (\(xs,ys) -> (fromList xs, fromList ys)) $ unzip xynodes
