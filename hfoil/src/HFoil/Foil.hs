@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module HFoil.Foil
@@ -15,6 +14,9 @@ import Numeric.LinearAlgebra hiding ( Element )
 import Network.HTTP ( simpleHTTP, getRequest, getResponseBody )
 import Foreign.Storable ( Storable )
 import Text.Read ( readMaybe )
+import Text.Parsec ( Parsec, ParsecT, Stream, (<?>), parse
+                   , option, char, try, lookAhead, manyTill, digit, endOfLine
+                   , many1, optional, anyChar, sepBy1, many, oneOf, skipMany )
 
 import qualified HFoil.Naca4 as Naca4
 
@@ -66,45 +68,12 @@ toElement xynodes = Element { fNodes = (xNodes, yNodes)
 poorMansStrip :: String -> String
 poorMansStrip str = reverse $ dropWhile (== ' ') $ reverse $ dropWhile (== ' ') str
 
-getUIUCFoil :: (Num (Vector a), Read a, RealFloat a, Container Vector a) =>
-               String -> IO (Either String (Foil a))
+getUIUCFoil :: String -> IO (Either String (Foil Double))
 getUIUCFoil name' = do
   let name = poorMansStrip name'
       file = "http://m-selig.ae.illinois.edu/ads/coord/" ++ name ++ ".dat"
   dl <- simpleHTTP (getRequest file) >>= getResponseBody
   return (parseRawFoil dl name)
-
-parseRawFoil ::
-  forall a
-  . (Num (Vector a), Read a, RealFloat a, Container Vector a)
-  => String -> String -> Either String (Foil a)
-parseRawFoil raw name
-    -- bad data
-  | any (\x -> 2 /= length x) (concat groupsOfLines) = err
-  | otherwise = mfoil
-  where
-    err = Left (raw ++ "\nError parsing the above data")
-    mfoil = case elements of
-      Nothing -> err
-      Just [] -> err
-      Just els -> Right (Foil (map toElement els) name)
-
-    elements :: Maybe [[(a,a)]]
-    readTupleMaybe x y = do
-      x' <- readMaybe x
-      y' <- readMaybe y
-      return (x', y')
-    elements = mapM (mapM (\(x:y:[]) -> readTupleMaybe x y)) groupsOfLines
-
-    -- group lines by splitting at empty lines
-    groupsOfLines :: [[[String]]]
-    groupsOfLines = f (lines raw)
-      where
-        f [] = []
-        f ([]:xs) = f xs
-        f xs = (map words fst'):(f snd')
-          where
-            (fst', snd') = break (\x -> 0 == length x) xs
 
 loadFoil :: FilePath -> IO (Either String (Foil Double))
 loadFoil filename' = do
@@ -171,3 +140,57 @@ xcsStep yt dyt xcs = flatten $ -(linearSolveLS mat2 (asColumn rs))
 
     mat2 = diff <> mat
     rs = diff <> deltas
+
+parseRawFoil :: String -> String -> Either String (Foil Double)
+parseRawFoil raw name = foil
+  where
+    foil = case parse foilP name raw of
+      Left pe -> Left (raw ++ "\nError parsing the above data: " ++ (show pe))
+      Right (_, els) -> Right (Foil (map toElement els) name)
+
+
+headerP :: Parsec String () String
+headerP = manyTill anyChar (try (lookAhead elementsP))
+
+foilP :: Parsec String () (String, [[(Double, Double)]])
+foilP = do
+  s <- headerP <?> "header"
+  els <- elementsP <?> "elements"
+  return (s, els)
+
+elementP :: Parsec String () [(Double, Double)]
+elementP = many2 coordP
+  where
+    many2 :: (Stream s m t) => ParsecT s u m a -> ParsecT s u m [a]
+    many2 p = do
+      x0 <- p
+      x1 <- p
+      xs <- many p
+      return (x0:x1:xs)
+
+
+elementsP :: Parsec String () [[(Double, Double)]]
+elementsP = sepBy1 elementP endOfLine
+
+doubleP :: Parsec String () Double
+doubleP = do
+  neg <- option ' ' (char '-')
+  leading <- option "0" (many1 digit)
+  dot' <- char '.'
+  trailing <- option "0" (many1 digit)
+  let doublish = neg : leading ++ dot' : trailing
+  case readMaybe doublish of
+    Just x -> return x
+    Nothing -> error $ "failed to read this supposed double: " ++ show doublish
+
+coordP :: Parsec String () (Double, Double)
+coordP = do
+  let space' = oneOf [' ', '\t']
+      spaces' = skipMany space' <?> "space-like"
+  spaces'      <?> "leading whitespace"
+  x <- doubleP <?> "first coordinate"
+  spaces'      <?> "middle whitespace"
+  y <- doubleP <?> "second coordinate"
+  spaces'      <?> "trailing whitespace"
+  _ <- optional endOfLine <?> "end of line"
+  return (x,y)
