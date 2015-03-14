@@ -10,8 +10,10 @@ import Control.Concurrent.MVar ( newMVar, readMVar, swapMVar )
 import Control.Monad.IO.Class ( MonadIO, liftIO )
 import Control.Monad.Trans.Class ( lift )
 import Control.Monad.Trans.State.Strict ( StateT, evalStateT, get, modify )
+import Data.List ( isPrefixOf )
 import Linear ( Quaternion(..), V3(..) )
-import System.Console.Haskeline ( InputT, runInputT, defaultSettings, getInputLine, outputStrLn )
+import System.Console.Haskeline ( InputT, runInputT, defaultSettings, getInputLine, outputStrLn, setComplete )
+import System.Console.Haskeline.Completion ( CompletionFunc, Completion, completeWord, simpleCompletion )
 import Text.Read ( readMaybe )
 
 import Vis
@@ -36,14 +38,30 @@ defaultConfig = Config { confForces = False
                        , confNormals = False
                        }
 
+data Mode = TopMode | FoilMode
+
+comp :: CompletionFunc (StateT Mode IO)
+comp = completeWord Nothing " \t" searchFunc
+  where
+    searchFunc :: String -> (StateT Mode IO) [Completion]
+    searchFunc str = do
+      mode <- get
+      let wordList = case mode of
+            TopMode  -> ["naca", "uiuc", "load", "help"]
+            FoilMode -> ["alfa", "forces", "kuttas", "normals", "help"]
+      return $ map simpleCompletion $ filter (str `isPrefixOf`) wordList
+
 run :: IO ()
 run = do
   mpics <- newMVar $ []
 
   putStrLn "Welcome to hfoil\n"
 
-  _ <- forkIO $ runInputT defaultSettings
-       $ topLoop (\pics -> swapMVar mpics pics >>= (\_ -> return ())) defaultConfig
+  let go :: InputT (StateT Mode IO) ()
+      go = topLoop (\pics -> swapMVar mpics pics >>= (\_ -> return ())) defaultConfig
+
+      settings = setComplete comp defaultSettings
+  _ <- forkIO $ flip evalStateT TopMode $ runInputT settings go
 
   let toScreen xs =
         RotQuat (Quaternion 0 (V3 1 0 0))
@@ -87,22 +105,31 @@ drawPicture draw = do
             False -> []
       liftIO $ draw $ forces++kuttas++normals++[drawSolution flow]
 
-foilHelp :: InputT IO ()
+foilHelp :: InputT (StateT Mode IO) ()
 foilHelp = do
   outputStrLn "alfa [number]"
   outputStrLn "forces"
   outputStrLn "kuttas"
   outputStrLn "normals"
 
-foilLoop :: ([VisObject Double] -> IO ()) -> StateT FoilState (InputT IO) ()
+strip :: String -> String
+strip = rstrip . lstrip
+  where
+    lstrip (' ':xs) = lstrip xs
+    lstrip x = x
+
+    rstrip = reverse . lstrip . reverse
+
+foilLoop :: ([VisObject Double] -> IO ()) -> StateT FoilState (InputT (StateT Mode IO)) ()
 foilLoop draw = do
+  lift (lift (modify (const FoilMode)))
   fs <- get
   let foil@(Foil _ name) = fsFoil fs
       conf = fsConf fs
   drawPicture draw
   minput <- lift $ getInputLine $ "\ESC[1;32m\STXhfoil."++name++">> \ESC[0m\STX"
 
-  case minput of
+  case fmap strip minput of
     Nothing -> return ()
     Just "quit" -> do lift $ outputStrLn "not-gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
                       foilLoop draw
@@ -137,21 +164,23 @@ foilLoop draw = do
                      foilLoop draw
 
 
-topLoop :: ([VisObject Double] -> IO ()) -> Config -> InputT IO ()
+topLoop :: ([VisObject Double] -> IO ()) -> Config -> InputT (StateT Mode IO) ()
 topLoop draw conf = do
+  lift (modify (const TopMode))
   minput <- getInputLine "\ESC[1;32m\STXhfoil>> \ESC[0m\STX"
   case minput of
     Nothing -> return ()
-    Just msg -> runTop draw conf msg >> topLoop draw conf
+    Just msg -> do runTop draw conf msg
+                   topLoop draw conf
 
-topHelp :: InputT IO ()
+topHelp :: InputT (StateT Mode IO) ()
 topHelp = do
   outputStrLn "naca xxxx"
   outputStrLn "load [filename]"
   outputStrLn "uiuc [foil name]"
 
-runTop :: ([VisObject Double] -> IO ()) -> Config -> String -> InputT IO ()
-runTop draw conf msg = case msg of
+runTop :: ([VisObject Double] -> IO ()) -> Config -> String -> InputT (StateT Mode IO) ()
+runTop draw conf msg = case strip msg of
   "quit" -> outputStrLn "not-gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
   ('n':'a':'c':'a':' ':spec) -> do
     case naca4 spec :: Maybe (Naca4 Double) of
@@ -172,7 +201,7 @@ runTop draw conf msg = case msg of
   other -> outputStrLn $ "unrecognized command \"" ++ other ++ "\""
 
 
-runFoil :: ([VisObject Double] -> IO ()) -> Config -> Foil Double -> InputT IO ()
+runFoil :: ([VisObject Double] -> IO ()) -> Config -> Foil Double -> InputT (StateT Mode IO) ()
 runFoil draw conf foil = do
   let state0 =
         FoilState
@@ -180,4 +209,6 @@ runFoil draw conf foil = do
         , fsConf = conf
         , fsFoil = foil
         }
-  flip evalStateT state0 $ foilLoop draw
+  let go :: StateT FoilState (InputT (StateT Mode IO)) ()
+      go = foilLoop draw
+  flip evalStateT state0 go
