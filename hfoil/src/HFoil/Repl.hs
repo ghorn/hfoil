@@ -91,17 +91,18 @@ drawPicture draw = do
   fs <- get
   let conf = fsConf fs
       foil = fsFoil fs
+      normals = case confNormals conf of
+        True -> [drawNormals foil]
+        False -> []
+
   case fsFlowSol fs of
-    Nothing -> liftIO $ draw [drawFoil foil]
+    Nothing -> liftIO $ draw (drawFoil foil: normals)
     Just flow -> do
       let forces = case (confForces conf) of
             True -> [drawForces flow]
             False -> []
           kuttas = case (confKuttas conf) of
             True -> [drawKuttas flow]
-            False -> []
-          normals = case (confNormals conf) of
-            True -> [drawNormals (solFoil flow)]
             False -> []
       liftIO $ draw $ forces++kuttas++normals++[drawSolution flow]
 
