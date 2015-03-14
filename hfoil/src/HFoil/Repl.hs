@@ -203,7 +203,9 @@ runTop draw conf msg = case strip msg of
   ('u':'i':'u':'c':' ':name) -> do
     efoil <- liftIO (getUIUCFoil name)
     case efoil of Left errMsg -> outputStrLn errMsg
-                  Right foil -> do runFoil draw conf foil
+                  Right foil -> do let Foil els _ = foil
+                                   outputStrLn $ "got " ++ show (length els) ++ " elements"
+                                   runFoil draw conf foil
   "help" -> topHelp
   "h"    -> topHelp
   "?"    -> topHelp

@@ -154,13 +154,40 @@ xcsStep yt dyt xcs = flatten $ -(linearSolveLS mat2 (asColumn rs))
     mat2 = diff <> mat
     rs = diff <> deltas
 
+discardIdenticalNeighbors :: Eq a => [a] -> [a]
+discardIdenticalNeighbors (x0:x1:xs)
+  | x0 == x1  =      discardIdenticalNeighbors (x1:xs)
+  | otherwise = x0 : discardIdenticalNeighbors (x1:xs)
+discardIdenticalNeighbors xs = xs
+
+stitchIncompleteElements :: [[(Double, Double)]] -> [[(Double,Double)]]
+stitchIncompleteElements (as:bs:others)
+  | and [ x0a < 0.5
+        , x0b < 0.5
+        , 0.5 < xFa
+        , 0.5 < xFb
+        ] = (discardIdenticalNeighbors ((reverse as) ++ bs)) : stitchIncompleteElements others
+  | and [ 0.5 < x0a
+        , 0.5 < x0b
+        , xFa < 0.5
+        , xFb < 0.5
+        ] = (discardIdenticalNeighbors (as ++ reverse bs)) : stitchIncompleteElements others
+  | otherwise = as : bs : stitchIncompleteElements others
+  where
+    x0a = fst $ head as
+    xFa = fst $ last as
+
+    x0b = fst $ head bs
+    xFb = fst $ last bs
+stitchIncompleteElements [] = []
+stitchIncompleteElements xs = xs
+
 parseRawFoil :: String -> String -> Either String (Foil Double)
 parseRawFoil raw name = foil
   where
     foil = case parse foilP name raw of
       Left pe -> Left (raw ++ "\nError parsing the above data: " ++ (show pe))
-      Right (_, els) -> Right (Foil (map toElement els) name)
-
+      Right (_, els) -> Right (Foil (map toElement (stitchIncompleteElements els)) name)
 
 headerP :: Parsec String () String
 headerP = manyTill anyChar (try (lookAhead elementsP))
