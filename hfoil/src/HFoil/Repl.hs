@@ -23,10 +23,10 @@ import HFoil.Naca4
 import HFoil.Drawing
 import HFoil.Flow
 
----- configuration
 nPanels :: Int
 nPanels = 200
 
+-- configuration
 data Config = Config { confForces :: Bool
                      , confKuttas :: Bool
                      , confNormals :: Bool
@@ -40,6 +40,28 @@ defaultConfig = Config { confForces = False
 
 data Mode = TopMode | FoilMode
 
+foilCommands :: [(String, String)]
+foilCommands =
+  [ ("alfa", "alfa [#]")
+  , ("forces", "forces")
+  , ("kuttas", "kuttas")
+  , ("normals", "normals")
+  , ("help", "help")
+  ]
+
+topCommands :: [(String, String)]
+topCommands =
+  [ ("naca",         "naca xxxx")
+  , ("load",   "load [filename]")
+  , ("uiuc",  "uiuc [foil name]")
+  ]
+
+topHelp :: InputT (StateT Mode IO) ()
+topHelp = mapM_ (outputStrLn . snd) topCommands
+
+foilHelp :: InputT (StateT Mode IO) ()
+foilHelp = mapM_ (outputStrLn . snd) foilCommands
+
 comp :: CompletionFunc (StateT Mode IO)
 comp = completeWord Nothing " \t" searchFunc
   where
@@ -47,8 +69,8 @@ comp = completeWord Nothing " \t" searchFunc
     searchFunc str = do
       mode <- get
       let wordList = case mode of
-            TopMode  -> ["naca", "uiuc", "load", "help"]
-            FoilMode -> ["alfa", "forces", "kuttas", "normals", "help"]
+            TopMode  -> map fst topCommands
+            FoilMode -> map fst foilCommands
       return $ map simpleCompletion $ filter (str `isPrefixOf`) wordList
 
 run :: IO ()
@@ -105,13 +127,6 @@ drawPicture draw = do
             True -> [drawKuttas flow]
             False -> []
       liftIO $ draw $ forces++kuttas++normals++[drawSolution flow]
-
-foilHelp :: InputT (StateT Mode IO) ()
-foilHelp = do
-  outputStrLn "alfa [number]"
-  outputStrLn "forces"
-  outputStrLn "kuttas"
-  outputStrLn "normals"
 
 strip :: String -> String
 strip = rstrip . lstrip
@@ -173,12 +188,6 @@ topLoop draw conf = do
     Nothing -> return ()
     Just msg -> do runTop draw conf msg
                    topLoop draw conf
-
-topHelp :: InputT (StateT Mode IO) ()
-topHelp = do
-  outputStrLn "naca xxxx"
-  outputStrLn "load [filename]"
-  outputStrLn "uiuc [foil name]"
 
 runTop :: ([VisObject Double] -> IO ()) -> Config -> String -> InputT (StateT Mode IO) ()
 runTop draw conf msg = case strip msg of
