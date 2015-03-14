@@ -32,6 +32,3 @@ script:
       echo "expected '$SRC_TGZ' not found";
       exit 1;
    fi
- - cd ../../not-gloss-examples
- - cabal install --only-dependencies
- - cabal build
