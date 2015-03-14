@@ -40,9 +40,21 @@ data Element a = Element { fNodes :: (Vector a, Vector a)
                          , fTails :: (Vector a, Vector a)
                          }
 
+
+-- make sure the nodes aren't reversed
 toElement :: (Num (Vector a), RealFloat a, Container Vector a)
              => [(a, a)] -> Element a
-toElement xynodes =
+toElement nodes
+  | diff < 0 = el
+  | otherwise = toElement' (reverse nodes)
+  where
+    el = toElement' nodes
+    angles = toList (fAngles el)
+    diff = sum $ zipWith (-) angles (drop 1 angles)
+
+toElement' :: (Num (Vector a), RealFloat a, Container Vector a)
+              => [(a, a)] -> Element a
+toElement' xynodes =
   Element { fNodes = (xNodes, yNodes)
           , fLengths = lengths
           , fAngles = zipVectorWith atan2 yTangents xTangents
