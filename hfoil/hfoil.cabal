@@ -1,5 +1,5 @@
 Name:                hfoil
-Version:             0.1.2
+Version:             0.2.0
 Stability:           Experimental
 Synopsis:            Hess-Smith panel code for inviscid 2-d airfoil analysis
 License:             BSD3
@@ -72,7 +72,7 @@ Executable hfoil
 
   hs-source-dirs:      apps
   Main-Is:             Main.hs
-  -- (gloss needs -O2 -threaded)
+  -- (not-gloss needs -O2 -threaded) -- does it really?
   Ghc-Options:         -O2 -threaded -Wall
   GHC-Prof-Options:    -auto-all -caf-all -rtsopts
 
