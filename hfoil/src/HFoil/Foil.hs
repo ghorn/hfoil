@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module HFoil.Foil
@@ -13,6 +14,7 @@ import System.Directory ( doesFileExist )
 import Numeric.LinearAlgebra hiding ( Element )
 import Network.HTTP ( simpleHTTP, getRequest, getResponseBody )
 import Foreign.Storable ( Storable )
+import Text.Read ( readMaybe )
 
 import qualified HFoil.Naca4 as Naca4
 
@@ -72,16 +74,27 @@ getUIUCFoil name' = do
   dl <- simpleHTTP (getRequest file) >>= getResponseBody
   return (parseRawFoil dl name)
 
-parseRawFoil :: (Num (Vector a), Read a, RealFloat a, Container Vector a) =>
-                String -> String -> Either String (Foil a)
+parseRawFoil ::
+  forall a
+  . (Num (Vector a), Read a, RealFloat a, Container Vector a)
+  => String -> String -> Either String (Foil a)
 parseRawFoil raw name
-  -- bad data
-  | any (\x -> 2 /= length x) (concat groupsOfLines) = Left (raw ++ "\nError parsing the above data")
-  -- single element
-  | length elements > 0 = Right (Foil (map toElement elements) name)
-  | otherwise =  Left (raw ++ "\nError parsing the above data")
+    -- bad data
+  | any (\x -> 2 /= length x) (concat groupsOfLines) = err
+  | otherwise = mfoil
   where
-    elements = map (map (\(x:y:[]) -> (read x, read y))) groupsOfLines
+    err = Left (raw ++ "\nError parsing the above data")
+    mfoil = case elements of
+      Nothing -> err
+      Just [] -> err
+      Just els -> Right (Foil (map toElement els) name)
+
+    elements :: Maybe [[(a,a)]]
+    readTupleMaybe x y = do
+      x' <- readMaybe x
+      y' <- readMaybe y
+      return (x', y')
+    elements = mapM (mapM (\(x:y:[]) -> readTupleMaybe x y)) groupsOfLines
 
     -- group lines by splitting at empty lines
     groupsOfLines :: [[[String]]]

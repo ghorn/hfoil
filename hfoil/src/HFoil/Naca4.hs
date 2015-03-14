@@ -8,13 +8,15 @@ module HFoil.Naca4
        , naca4
        ) where
 
-naca4 :: (Read a, Fractional a) => String -> Naca4 a
-naca4 name@(m_:p_:t0:t1:[]) = Naca4 m p t ("NACA "++name)
-  where
-    m = 0.01 * read [m_]
-    p = 0.1  * read [p_]
-    t = 0.01 * read (t0:[t1])
-naca4 _ = error "not a 4 digit airfoil"
+import Text.Read ( readMaybe )
+
+naca4 :: (Read a, Fractional a) => String -> Maybe (Naca4 a)
+naca4 name@(m_:p_:t0:t1:[]) = do
+  m <- fmap (0.01 *) $ readMaybe [m_]
+  p <- fmap (0.1  *) $ readMaybe [p_]
+  t <- fmap (0.01 *) $ readMaybe [t0,t1]
+  return $ Naca4 m p t ("NACA " ++ name)
+naca4 _ = Nothing
 
 -- m: max camber in hundredths of chord
 -- p: position of max camber in tenths of chord

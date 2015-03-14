@@ -1,14 +1,18 @@
 {-# OPTIONS_GHC -Wall #-}
+-- {-# Language FlexibleContexts #-}
 
 module HFoil.Repl
        ( run
        ) where
 
-import System.Console.Haskeline ( InputT, runInputT, defaultSettings, getInputLine, outputStrLn )
-import Control.Monad.IO.Class
 import Control.Concurrent ( forkIO )
 import Control.Concurrent.MVar ( newMVar, readMVar, swapMVar )
+import Control.Monad.IO.Class ( MonadIO, liftIO )
+import Control.Monad.Trans.Class ( lift )
+import Control.Monad.Trans.State.Strict ( StateT, evalStateT, get, modify )
 import Linear ( Quaternion(..), V3(..) )
+import System.Console.Haskeline ( InputT, runInputT, defaultSettings, getInputLine, outputStrLn )
+import Text.Read ( readMaybe )
 
 import Vis
 
@@ -34,10 +38,7 @@ defaultConfig = Config { confForces = False
 
 run :: IO ()
 run = do
-  let naca0 = "2412"
-      alfaDeg0 = 4
-      flow0 = solveFlow (panelizeNaca4 (naca4 naca0) nPanels) (pi/180*alfaDeg0)
-  mpics <- newMVar $ [drawSolution flow0]
+  mpics <- newMVar $ []
 
   putStrLn "Welcome to hfoil\n"
 
@@ -60,82 +61,123 @@ run = do
     (defaultOpts {optWindowName = "hfoil", optInitialCamera = Just cam0})
     (\_ -> fmap toScreen (readMVar mpics))
 
-foilLoop :: ([VisObject Double] -> IO ()) -> Config -> Foil Double -> InputT IO ()
-foilLoop draw conf foil@(Foil _ name) = do
-  minput <- getInputLine $ "\ESC[1;32m\STXhfoil."++name++">> \ESC[0m\STX"
+data FoilState =
+  FoilState
+  { fsFlowSol :: Maybe (FlowSol Double)
+  , fsConf :: Config
+  , fsFoil :: Foil Double
+  }
+
+drawPicture :: MonadIO m => ([VisObject Double] -> IO ()) -> StateT FoilState m ()
+drawPicture draw = do
+  fs <- get
+  let conf = fsConf fs
+      foil = fsFoil fs
+  case fsFlowSol fs of
+    Nothing -> liftIO $ draw [drawFoil foil]
+    Just flow -> do
+      let forces = case (confForces conf) of
+            True -> [drawForces flow]
+            False -> []
+          kuttas = case (confKuttas conf) of
+            True -> [drawKuttas flow]
+            False -> []
+          normals = case (confNormals conf) of
+            True -> [drawNormals (solFoil flow)]
+            False -> []
+      liftIO $ draw $ forces++kuttas++normals++[drawSolution flow]
+
+foilHelp :: InputT IO ()
+foilHelp = do
+  outputStrLn "alfa [number]"
+  outputStrLn "forces"
+  outputStrLn "kuttas"
+  outputStrLn "normals"
+
+foilLoop :: ([VisObject Double] -> IO ()) -> StateT FoilState (InputT IO) ()
+foilLoop draw = do
+  fs <- get
+  let foil@(Foil _ name) = fsFoil fs
+      conf = fsConf fs
+  drawPicture draw
+  minput <- lift $ getInputLine $ "\ESC[1;32m\STXhfoil."++name++">> \ESC[0m\STX"
+
   case minput of
     Nothing -> return ()
-    Just "quit" -> do outputStrLn "not-gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
-                      foilLoop draw conf foil
-    Just ('a':'l':'f':'a':' ':alphaDeg) -> do let flow = solveFlow foil (pi/180*(read alphaDeg))
-                                                  forces = case (confForces conf) of
-                                                    True -> [drawForces flow]
-                                                    False -> []
-                                                  kuttas = case (confKuttas conf) of
-                                                    True -> [drawKuttas flow]
-                                                    False -> []
-                                                  normals = case (confNormals conf) of
-                                                    True -> [drawNormals (solFoil flow)]
-                                                    False -> []
-                                              liftIO $ draw $ forces++kuttas++normals++[drawSolution flow]
-                                              foilLoop draw conf foil
+    Just "quit" -> do lift $ outputStrLn "not-gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
+                      foilLoop draw
+    Just ('a':'l':'f':'a':' ':alphaDeg') -> do
+      case readMaybe alphaDeg' of
+        Nothing -> do lift $ outputStrLn $ "parse fail on " ++ show alphaDeg'
+                      foilLoop draw
+        Just alphaDeg -> do let flow :: FlowSol Double
+                                flow = solveFlow foil (pi/180*alphaDeg)
+                            modify (\fs' -> fs' {fsFlowSol = Just flow})
+                            foilLoop draw
     Just "forces" -> do
       let newConf = conf {confForces = not (confForces conf)}
-      outputStrLn $ "force drawing set to "++ show (not (confForces conf))
-      foilLoop draw newConf foil
+      lift $ outputStrLn $ "force drawing set to "++ show (not (confForces conf))
+      modify (\fs' -> fs' {fsConf = newConf})
+      foilLoop draw
     Just "kuttas" -> do
       let newConf = conf {confKuttas = not (confKuttas conf)}
-      outputStrLn $ "kutta drawing set to "++ show (not (confKuttas conf))
-      foilLoop draw newConf foil
+      lift $ outputStrLn $ "kutta drawing set to "++ show (not (confKuttas conf))
+      modify (\fs' -> fs' {fsConf = newConf})
+      foilLoop draw
     Just "normals" -> do
       let newConf = conf {confNormals = not (confNormals conf)}
-      outputStrLn $ "normals drawing set to "++ show (not (confNormals conf))
-      foilLoop draw newConf foil
-    Just "help" -> do
-      outputStrLn "alfa [number]"
-      outputStrLn "forces"
-      outputStrLn "kuttas"
-      outputStrLn "normals"
-      foilLoop draw conf foil
+      lift $ outputStrLn $ "normals drawing set to "++ show (not (confNormals conf))
+      modify (\fs' -> fs' {fsConf = newConf})
+      foilLoop draw
+    Just "help" -> lift foilHelp >> foilLoop draw
+    Just "h"    -> lift foilHelp >> foilLoop draw
+    Just "?"    -> lift foilHelp >> foilLoop draw
     Just "" -> return ()
-    Just input -> do outputStrLn $ "unrecognized command \"" ++ input ++ "\""
-                     foilLoop draw conf foil
+    Just input -> do lift $ outputStrLn $ "unrecognized command \"" ++ input ++ "\""
+                     foilLoop draw
+
 
 topLoop :: ([VisObject Double] -> IO ()) -> Config -> InputT IO ()
 topLoop draw conf = do
   minput <- getInputLine "\ESC[1;32m\STXhfoil>> \ESC[0m\STX"
   case minput of
     Nothing -> return ()
-    Just "quit" -> do outputStrLn "not-gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
-                      topLoop draw conf
-    Just ('n':'a':'c':'a':' ':spec) -> do parseNaca draw conf spec
-                                          topLoop draw conf
-    Just ('l':'o':'a':'d':' ':name) -> do
-      foil <- liftIO (loadFoil name)
-      case foil of Left errMsg -> outputStrLn errMsg
-                   Right foil' -> do liftIO $ draw [drawFoil foil', drawNormals foil']
-                                     foilLoop draw conf foil'
-      topLoop draw conf
-    Just ('u':'i':'u':'c':' ':name) -> do
-      efoil <- liftIO (getUIUCFoil name)
-      case efoil of Left errMsg -> outputStrLn errMsg
-                    Right foil -> do liftIO $ draw [drawFoil foil, drawNormals foil]
-                                     foilLoop draw conf foil
-      topLoop draw conf
+    Just msg -> runTop draw conf msg >> topLoop draw conf
 
-    Just "help" -> do
-      outputStrLn "naca xxxx"
-      outputStrLn "load [filename]"
-      outputStrLn "uiuc [foil name]"
-      topLoop draw conf
-    Just "" -> topLoop draw conf
-    Just input -> do outputStrLn $ "unrecognized command \"" ++ input ++ "\""
-                     topLoop draw conf
+topHelp :: InputT IO ()
+topHelp = do
+  outputStrLn "naca xxxx"
+  outputStrLn "load [filename]"
+  outputStrLn "uiuc [foil name]"
 
-parseNaca :: ([VisObject Double] -> IO ()) -> Config -> String -> InputT IO ()
-parseNaca draw conf str
-  | length str == 4 = do let foil = panelizeNaca4 (naca4 str :: Naca4 Double) nPanels
-                         liftIO $ draw [drawFoil foil, drawNormals foil]
-                         foilLoop draw conf foil
-  | otherwise = do outputStrLn $ "Not 4 digits"
-                   return ()
+runTop :: ([VisObject Double] -> IO ()) -> Config -> String -> InputT IO ()
+runTop draw conf msg = case msg of
+  "quit" -> outputStrLn "not-gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
+  ('n':'a':'c':'a':' ':spec) -> do
+    case naca4 spec :: Maybe (Naca4 Double) of
+      Nothing -> outputStrLn "not a valid naca4"
+      Just n4 -> runFoil draw conf (panelizeNaca4 n4 nPanels)
+  ('l':'o':'a':'d':' ':name) -> do
+    mfoil <- liftIO (loadFoil name)
+    case mfoil of Left errMsg -> outputStrLn errMsg
+                  Right foil -> do runFoil draw conf foil
+  ('u':'i':'u':'c':' ':name) -> do
+    efoil <- liftIO (getUIUCFoil name)
+    case efoil of Left errMsg -> outputStrLn errMsg
+                  Right foil -> do runFoil draw conf foil
+  "help" -> topHelp
+  "h"    -> topHelp
+  "?"    -> topHelp
+  "" -> return ()
+  other -> outputStrLn $ "unrecognized command \"" ++ other ++ "\""
+
+
+runFoil :: ([VisObject Double] -> IO ()) -> Config -> Foil Double -> InputT IO ()
+runFoil draw conf foil = do
+  let state0 =
+        FoilState
+        { fsFlowSol = Nothing
+        , fsConf = conf
+        , fsFoil = foil
+        }
+  flip evalStateT state0 $ foilLoop draw
