@@ -102,9 +102,10 @@ fst3 (x,_,_) = x
 
 panelizeNaca4 :: (Enum a, Floating (Vector a), RealFloat a, Field a) =>
                 Naca4.Naca4 a -> Int -> Foil a
-panelizeNaca4 foil nPanels = Foil [toElement $ [(1,0)]++reverse lower++[(0,0)]++upper++[(1,0)]]
+panelizeNaca4 foil nPanels = Foil [toElement $ [(1,0)]++reverse lower++[c0]++upper++[(1,0)]]
                              (Naca4.naca4_name foil)
   where
+    c0 = fst (Naca4.coords foil 0)
     (upper, lower) = unzip $ map (Naca4.coords foil) xcs
     xcs = toList $ fst3 $ bunchPanels (Naca4.yt foil) (Naca4.dyt foil) xcs0 0 0
     xcs0 = fromList $ init $ tail $ toList $ linspace nXcs (0,1)

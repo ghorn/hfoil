@@ -31,14 +31,14 @@ data Naca4 a = Naca4 { naca4_m :: a
 yc :: (Ord a, Fractional a) => Naca4 a -> a -> a
 yc (Naca4 {naca4_p = p, naca4_m = m}) xc
   | xc < 0    = error "xc < 0"
-  | xc <= p   = m/(p*p)*(2*p*xc - xc*xc)
+  | xc <  p   = m/(p*p)*(2*p*xc - xc*xc)
   | xc <= 1   = m/((1-p)*(1-p))*((1-2*p) + 2*p*xc - xc*xc)
   | otherwise = error "xc > 1"
 
 dyc :: (Ord a, Fractional a) => Naca4 a -> a -> a
 dyc (Naca4 {naca4_p = p, naca4_m = m}) xc
   | xc < 0    = error "xc < 0"
-  | xc <= p   = m/(p*p)*(2*p - 2*xc)
+  | xc <  p   = m/(p*p)*(2*p - 2*xc)
   | xc <= 1   = m/((1-p)*(1-p))*(2*p - 2*xc)
   | otherwise = error "xc > 1"
 
