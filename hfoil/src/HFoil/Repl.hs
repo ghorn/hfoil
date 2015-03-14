@@ -4,7 +4,7 @@ module HFoil.Repl
        ( run
        ) where
 
-import System.Console.Haskeline hiding ( display )
+import System.Console.Haskeline ( InputT, runInputT, defaultSettings, getInputLine, outputStrLn )
 import Control.Monad.IO.Class
 import Control.Concurrent ( forkIO )
 import Control.Concurrent.MVar ( newMVar, readMVar, swapMVar )
@@ -65,10 +65,8 @@ foilLoop draw conf foil@(Foil _ name) = do
   minput <- getInputLine $ "\ESC[1;32m\STXhfoil."++name++">> \ESC[0m\STX"
   case minput of
     Nothing -> return ()
-    Just "quit" -> do outputStrLn "gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
+    Just "quit" -> do outputStrLn "not-gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
                       foilLoop draw conf foil
-    Just ('a':'l':'f':'a':' ':[]) -> do outputStrLn $ "unrecognized command"
-                                        foilLoop draw conf foil
     Just ('a':'l':'f':'a':' ':alphaDeg) -> do let flow = solveFlow foil (pi/180*(read alphaDeg))
                                                   forces = case (confForces conf) of
                                                     True -> [drawForces flow]
@@ -81,18 +79,24 @@ foilLoop draw conf foil@(Foil _ name) = do
                                                     False -> []
                                               liftIO $ draw $ forces++kuttas++normals++[drawSolution flow]
                                               foilLoop draw conf foil
-    Just ('f':'o':'r':'c':'e':'s':[]) -> do
+    Just "forces" -> do
       let newConf = conf {confForces = not (confForces conf)}
       outputStrLn $ "force drawing set to "++ show (not (confForces conf))
       foilLoop draw newConf foil
-    Just ('k':'u':'t':'t':'a':'s':[]) -> do
+    Just "kuttas" -> do
       let newConf = conf {confKuttas = not (confKuttas conf)}
       outputStrLn $ "kutta drawing set to "++ show (not (confKuttas conf))
       foilLoop draw newConf foil
-    Just ('n':'o':'r':'m':'a':'l':'s':[]) -> do
+    Just "normals" -> do
       let newConf = conf {confNormals = not (confNormals conf)}
       outputStrLn $ "normals drawing set to "++ show (not (confNormals conf))
       foilLoop draw newConf foil
+    Just "help" -> do
+      outputStrLn "alfa [number]"
+      outputStrLn "forces"
+      outputStrLn "kuttas"
+      outputStrLn "normals"
+      foilLoop draw conf foil
     Just "" -> return ()
     Just input -> do outputStrLn $ "unrecognized command \"" ++ input ++ "\""
                      foilLoop draw conf foil
@@ -102,7 +106,7 @@ topLoop draw conf = do
   minput <- getInputLine "\ESC[1;32m\STXhfoil>> \ESC[0m\STX"
   case minput of
     Nothing -> return ()
-    Just "quit" -> do outputStrLn "gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
+    Just "quit" -> do outputStrLn "not-gloss won't let you quit :(\ntry ctrl-c or hit ESC in drawing window"
                       topLoop draw conf
     Just ('n':'a':'c':'a':' ':spec) -> do parseNaca draw conf spec
                                           topLoop draw conf
@@ -119,6 +123,11 @@ topLoop draw conf = do
                                      foilLoop draw conf foil
       topLoop draw conf
 
+    Just "help" -> do
+      outputStrLn "naca xxxx"
+      outputStrLn "load [filename]"
+      outputStrLn "uiuc [foil name]"
+      topLoop draw conf
     Just "" -> topLoop draw conf
     Just input -> do outputStrLn $ "unrecognized command \"" ++ input ++ "\""
                      topLoop draw conf
