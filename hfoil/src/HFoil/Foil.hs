@@ -70,7 +70,7 @@ getUIUCFoil :: (Num (Vector a), Read a, RealFloat a, Container Vector a) =>
                String -> IO (Either String (Foil a))
 getUIUCFoil name' = do
   let name = poorMansStrip name'
-  let file = "http://www.ae.illinois.edu/m-selig/ads/coord/" ++ name ++ ".dat"
+      file = "http://m-selig.ae.illinois.edu/ads/coord/" ++ name ++ ".dat"
   dl <- simpleHTTP (getRequest file) >>= getResponseBody
   return (parseRawFoil dl name)
 
