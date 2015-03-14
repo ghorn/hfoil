@@ -9,7 +9,7 @@ Maintainer:          gregmainland@gmail.com
 Copyright:           Greg Horn, 2012
 Category:            Numerical, Science
 Build-type:          Simple
-Cabal-version:       >=1.6
+Cabal-version:       >= 1.8
 Description: {
 Library and command line REPL with plotting to do simple inviscid hess-smith panel code.
 .
@@ -38,12 +38,13 @@ Flag repl
      Default: True
 
 Library
-  Exposed-modules:     Numeric.HFoil
-                       Numeric.HFoil.Naca4
-                       Numeric.HFoil.Foil
-                       Numeric.HFoil.Drawing
-                       Numeric.HFoil.Flow
-                       Numeric.HFoil.Repl
+  hs-source-dirs:      src
+  Exposed-modules:     HFoil
+                       HFoil.Naca4
+                       HFoil.Foil
+                       HFoil.Drawing
+                       HFoil.Flow
+                       HFoil.Repl
 --  Other-modules:
 
   Build-depends:       base >= 4 && < 5
@@ -65,6 +66,10 @@ Executable hfoil
   else
      Buildable: False
 
+  Build-depends:       base >= 4 && < 5
+                       , hfoil >= 0.1.2
+
+  hs-source-dirs:      apps
   Main-Is:             Main.hs
   -- (gloss needs -O2 -threaded)
   Ghc-Options:         -O2 -threaded -Wall

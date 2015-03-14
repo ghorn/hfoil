@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module Numeric.HFoil.Repl
+module HFoil.Repl
        ( run
        ) where
 
@@ -12,10 +12,10 @@ import Linear ( Quaternion(..), V3(..) )
 
 import Vis
 
-import Numeric.HFoil.Foil
-import Numeric.HFoil.Naca4
-import Numeric.HFoil.Drawing
-import Numeric.HFoil.Flow
+import HFoil.Foil
+import HFoil.Naca4
+import HFoil.Drawing
+import HFoil.Flow
 
 ---- configuration
 nPanels :: Int

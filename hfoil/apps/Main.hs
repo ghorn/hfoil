@@ -2,7 +2,7 @@
 
 module Main where
 
-import Numeric.HFoil.Repl
+import HFoil.Repl
 
 main :: IO ()
 main = run

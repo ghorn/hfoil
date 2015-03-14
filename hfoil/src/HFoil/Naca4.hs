@@ -1,11 +1,12 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module Numeric.HFoil.Naca4( Naca4(..)
-                          , coords
-                          , yt
-                          , dyt
-                          , naca4
-                          ) where
+module HFoil.Naca4
+       ( Naca4(..)
+       , coords
+       , yt
+       , dyt
+       , naca4
+       ) where
 
 naca4 :: (Read a, Fractional a) => String -> Naca4 a
 naca4 name@(m_:p_:t0:t1:[]) = Naca4 m p t ("NACA "++name)

@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Numeric.HFoil.Drawing
+module HFoil.Drawing
        ( drawSolution
        , drawFoil
        , drawNormals
@@ -18,8 +18,8 @@ import Linear ( V3(..) )
 
 import Vis
 
-import Numeric.HFoil.Flow
-import Numeric.HFoil.Foil
+import HFoil.Flow
+import HFoil.Foil
 
 cpScale :: Fractional a => a
 cpScale = -0.25

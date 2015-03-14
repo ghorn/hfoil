@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Numeric.HFoil.Flow
+module HFoil.Flow
        ( FlowSol(..)
        , solveFlow
        ) where
@@ -12,7 +12,7 @@ import Control.Monad.ST ( runST )
 import Numeric.LinearAlgebra hiding(i)
 import Foreign.Storable ( Storable )
 
-import Numeric.HFoil.Foil
+import HFoil.Foil
 
 data FlowSol a = FlowSol { solFoil :: Foil a
                          , solVs :: Vector a

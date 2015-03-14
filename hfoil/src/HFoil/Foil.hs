@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Numeric.HFoil.Foil
+module HFoil.Foil
        ( Foil(..)
        , Element(..)
        , panelizeNaca4
@@ -14,7 +14,7 @@ import Numeric.LinearAlgebra hiding ( Element )
 import Network.HTTP ( simpleHTTP, getRequest, getResponseBody )
 import Foreign.Storable ( Storable )
 
-import qualified Numeric.HFoil.Naca4 as Naca4
+import qualified HFoil.Naca4 as Naca4
 
 data Foil a = Foil [Element a] String
 
