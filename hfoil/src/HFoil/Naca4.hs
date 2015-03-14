@@ -53,13 +53,13 @@ dyt (Naca4 {naca4_t = t}) xc
   | otherwise = 5*t*(0.5*0.2969/sqrt(xc) - 0.1260 - 2*0.3537*(xc) + 3*0.2843*(xc)**2 - 4*0.1015*(xc)**3)
 
 coords :: (Ord a, Floating a) => Naca4 a -> a -> ((a,a),(a,a))
-coords foil xc 
+coords foil xc
   | naca4_m foil == 0 = ((xc,yt_), (xc,-yt_))
   | otherwise         = ((xu,yu ), (xl, yl ))
   where
     yt_ = yt foil xc
     yc_ = yc foil xc
-    
+
     yu = yc_ + yt_ * (cos theta)
     yl = yc_ - yt_ * (cos theta)
 
