@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module HFoil.Foil
@@ -111,7 +112,7 @@ panelizeNaca4 foil nPanels = Foil [toElement $ [(1,0)]++reverse lower++[c0]++upp
     xcs0 = fromList $ init $ tail $ toList $ linspace nXcs (0,1)
     nXcs = (nPanels + (nPanels `mod` 2)) `div` 2 + 1
 
-bunchPanels :: (Enum a, Floating (Vector a), Floating a, Ord a, Field a) =>
+bunchPanels :: forall a . (Enum a, Floating (Vector a), Floating a, Ord a, Field a) =>
                (a -> a) -> (a -> a) -> Vector a -> Int -> Int -> (Vector a, Int, Int)
 bunchPanels yt dyt xcs nIter nBadSteps
   | nIter     > 300  = error "panel buncher exceeded 300 iterations"
@@ -120,7 +121,9 @@ bunchPanels yt dyt xcs nIter nBadSteps
   | otherwise                           = bunchPanels yt dyt goodXcs (nIter+1) (nBadSteps + length badOnes)
   where
     (badOnes, goodXcs:_) = break (\xs -> all (>0) (toList xs)) nextXcs
+    nextXcs :: [Vector a]
     nextXcs = map (\alpha -> xcs + (scale alpha deltaXcs)) (map (2.0**) [0,-1..])
+    deltaXcs :: Vector a
     deltaXcs = xcsStep yt dyt xcs
 
 xcsStep :: (Enum a, Floating (Vector a), Field a) => (a -> a) -> (a -> a) -> Vector a -> Vector a
@@ -128,17 +131,23 @@ xcsStep yt dyt xcs = flatten $ -(linearSolveLS mat2 (asColumn rs))
   where
     n = dim xcs
 
-    xs = vjoin [fromList [0],              xcs, fromList[1]]
-    ys = vjoin [fromList [0], mapVector yt xcs, fromList[0]]
+    -- x coords
+    xs = vjoin [fromList [0],              xcs, fromList [1]]
+    -- y coords
+    ys = vjoin [fromList [0], mapVector yt xcs, fromList [0]]
+    -- x deltas
     dxs = (subVector 1 (n+1) xs) - (subVector 0 (n+1) xs)
+    -- y deltas
     dys = (subVector 1 (n+1) ys) - (subVector 0 (n+1) ys)
+    -- delta magnitures
     deltas = sqrt (dxs*dxs + dys*dys)
+    -- slopes
     dydxs = mapVector dyt xcs
 
     mat = r1 - r0
       where
-        r0 = fromBlocks [[(1><n)[0,0..]],[diagRect 0 diag0 n n]]
-        r1 = fromBlocks [                [diagRect 0 diag1 n n], [(1><n)[0,0..]]]
+        r0 = fromBlocks [[(1><n) [0,0..]], [diagRect 0 diag0 n n]]
+        r1 = fromBlocks [                  [diagRect 0 diag1 n n], [(1><n)[0,0..]]]
 
         (diag0, diag1) = (subVector 1 n d0, subVector 0 n d1)
           where

@@ -93,8 +93,6 @@ solveFlow foil@(Foil elements _) alpha =
 
 
 -- make influence matrix A and also the matrix V where V*[sources; vortex] == tangential speeds
---getAVb :: (Num (Vector a), RealFloat a, Container Vector a) =>
---          Foil a -> a -> (Matrix a, Matrix a)
 getAVb :: (Floating a, Num (Vector a), Container Vector a, Storable a) =>
           (Matrix a, Matrix a, Matrix a, Matrix a)
           -> Vector a
