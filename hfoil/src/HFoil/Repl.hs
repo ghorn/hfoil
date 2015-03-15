@@ -89,7 +89,6 @@ run = do
         RotQuat (Quaternion 0 (V3 1 0 0))
         $ Trans (V3 (-0.5) 0 0)
         $ VisObjects xs
-        -- $ VisObjects (Axes (0.3,15) : xs)
       cam0 =
         Camera0
         { phi0 = 90
