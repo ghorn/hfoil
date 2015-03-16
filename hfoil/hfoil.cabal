@@ -55,7 +55,7 @@ Library
                        , transformers >= 0.2
                        , directory >= 1.1
                        , HTTP >= 4000.2
-                       , parsec >= 3
+                       , parsec >= 3.1.6
 
   Ghc-Options:         -Wall
   Ghc-Prof-Options:    -prof -auto-all
