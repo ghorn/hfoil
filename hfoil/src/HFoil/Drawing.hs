@@ -28,7 +28,7 @@ normalLengths :: Fractional a => a
 normalLengths = 0.01
 
 drawLine :: Num a => Color -> [(a,a)] -> VisObject a
-drawLine col coords = Line (map (\(x,y) -> V3 x y 0) coords) col
+drawLine col coords = Line Nothing (map (\(x,y) -> V3 x y 0) coords) col
 
 drawCircle :: Num a => Color -> (a, a) -> a -> VisObject a
 drawCircle col (x,y) size = Trans (V3 x y 0) $ Sphere size Solid col
@@ -38,7 +38,7 @@ drawCircle col (x,y) size = Trans (V3 x y 0) $ Sphere size Solid col
 --                            $ Circle size
 
 drawLineV :: (Num a, Storable a) => Color -> (Vector a, Vector a) -> VisObject a
-drawLineV col (vx, vy) = Line (zipWith (\x y -> V3 x y 0) (toList vx) (toList vy)) col
+drawLineV col (vx, vy) = Line Nothing (zipWith (\x y -> V3 x y 0) (toList vx) (toList vy)) col
 
 drawFoil :: (Num a, Storable a) => Foil a -> VisObject a
 drawFoil (Foil elements _) = VisObjects $ map drawElement elements

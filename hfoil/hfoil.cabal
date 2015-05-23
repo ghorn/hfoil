@@ -1,5 +1,5 @@
 Name:                hfoil
-Version:             0.2.0.1
+Version:             0.2.0.2
 Stability:           Experimental
 Synopsis:            Hess-Smith panel code for inviscid 2-d airfoil analysis
 License:             BSD3
@@ -48,7 +48,7 @@ Library
 --  Other-modules:
 
   Build-depends:       base >= 4 && < 5
-                       , not-gloss >= 0.7.2.0
+                       , not-gloss >= 0.7.4.0
                        , linear
                        , hmatrix >= 0.12
                        , haskeline >= 0.6
